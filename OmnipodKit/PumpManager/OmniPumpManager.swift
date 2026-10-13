@@ -2154,6 +2154,57 @@ extension OmniPumpManager {
         }
     }
 
+    // MARK: - Dexcom G7 connected directly to an O5 pod (proof of concept)
+
+    /// Tells the active O5 pod to connect directly to the given Dexcom G7 sensor:
+    /// enables the pod's CGM interface for a G7 (SE4.2), then sends the sensor identity (SE4.1).
+    func connectDexcomG7(pairingCode: String, serialNumber: String) async throws -> String {
+        return try await runO5AidSession(withName: "Connect Dexcom G7") { session in
+            let interfaceResult = try session.sendO5AidCommand(O5AidCommands.CgmInterfaceCommand.payload())
+            var output = "SE4.2 (enable, G7): \(O5AidCommands.extendedSetResultDescription(interfaceResult))\n"
+            guard interfaceResult == Data("0".utf8) else {
+                return output
+            }
+            let sensorInfoResult = try session.sendO5AidCommand(
+                O5AidCommands.G7SensorInfoCommand.payload(pairingCode: pairingCode, serialNumber: serialNumber))
+            output += "SE4.1 (pairing code, serial): \(O5AidCommands.extendedSetResultDescription(sensorInfoResult))\n"
+            return output
+        }
+    }
+
+    /// Reads the active O5 pod's CGM interface (G4.2), sensor info (G4.1) and AID status (G3.12).
+    func readDexcomG7Status() async throws -> String {
+        return try await runO5AidSession(withName: "Read Dexcom G7 Status") { session in
+            let interface = try session.sendO5AidCommand(O5AidCommands.CgmInterfaceCommand.getPayload())
+            var output = "G4.2: \(interface.hexadecimalString)\n"
+            let sensorInfo = try session.sendO5AidCommand(O5AidCommands.G7SensorInfoCommand.getPayload())
+            output += "G4.1: \(sensorInfo.hexadecimalString)\n"
+            let status = try session.sendO5AidCommand(O5AidCommands.UnifiedAidPodStatusCommand.payload())
+            output += "G3.12: \(status.hexadecimalString)\n\n"
+            output += O5AidCgmStatus(status)?.description ?? "Unable to decode G3.12"
+            return output
+        }
+    }
+
+    /// Runs `block` in a pod session on an active pod; the first failing command ends it and is thrown.
+    /// The raw AID responses are always logged by BlePodMessageTransport.sendO5AidCommand.
+    private func runO5AidSession(withName name: String, _ block: @escaping (PodCommsSession) throws -> String) async throws -> String {
+        guard self.hasActivePod else {
+            throw OmniPumpManagerError.noPodPaired
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.runSession(withName: name) { (result) in
+                switch result {
+                case .success(let session):
+                    continuation.resume(with: Result { try block(session) })
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     func setConfirmationBeeps(newPreference: BeepPreference, completion: @escaping (OmniPumpManagerError?) -> Void) {
 
         #if targetEnvironment(simulator)
