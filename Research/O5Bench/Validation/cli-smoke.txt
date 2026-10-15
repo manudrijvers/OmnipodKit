@@ -1,0 +1,75 @@
+Synthetic session; physical writes disabled; virtual elapsed: 0 seconds
+Synthetic session; physical writes disabled; virtual elapsed: 0 seconds
+Synthetic session; physical writes disabled; virtual elapsed: 600 seconds
+baseline: completed
+Synthetic session; physical writes disabled; virtual elapsed: 1200 seconds
+baseline: completed
+reconnect: completed
+Synthetic session; physical writes disabled; virtual elapsed: 1200 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+Synthetic session; physical writes disabled; virtual elapsed: 1200 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+Synthetic session; physical writes disabled; virtual elapsed: 2100 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+Synthetic session; physical writes disabled; virtual elapsed: 2100 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+provision: completed
+Synthetic session; physical writes disabled; virtual elapsed: 3900 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+provision: completed
+observe: completed
+Synthetic session; physical writes disabled; virtual elapsed: 4500 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+provision: completed
+observe: completed
+reconnectReception: completed
+Synthetic session; physical writes disabled; virtual elapsed: 4500 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+provision: completed
+observe: completed
+reconnectReception: completed
+Synthetic session; physical writes disabled; virtual elapsed: 4500 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+provision: completed
+observe: completed
+reconnectReception: completed
+Mutation locks: operator-observed-alarm
+Synthetic session; physical writes disabled; virtual elapsed: 4500 seconds
+baseline: completed
+reconnect: completed
+targetProfile: completed
+dia: completed
+enable: completed
+provision: completed
+observe: completed
+reconnectReception: completed
+Mutation locks: operator-observed-alarm

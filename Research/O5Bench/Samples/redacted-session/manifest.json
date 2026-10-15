@@ -1,0 +1,164 @@
+{
+  "activationProvenance" : "synthetic fixture; no physical activation observed",
+  "baselineComplete" : true,
+  "clock" : "virtual; not physical elapsed observation",
+  "configurationConfirmed" : true,
+  "enableVerified" : true,
+  "experimentID" : "A31E6403-9489-472B-B526-72411730DFA4",
+  "locks" : [
+    "operator-observed-alarm"
+  ],
+  "physicalWritesEnabled" : false,
+  "receptionObserved" : true,
+  "redacted" : true,
+  "redaction" : "Sharing exports omit all raw payloads, target and sensor identifiers, and operator free text. Checksums cover exported bytes only.",
+  "revisions" : {
+    "OmnipodKitBase" : "043b91dbf1958d26c55d927a6a8d651bc91f208d",
+    "research" : "db92e426b97914ce1c80bdab45a74001a858840a",
+    "runnerSourceSHA256" : "b0dfd0138969b7c7dfff7a6abe16ccc1c5911beab665a4d2acfcbfb302bb7f19",
+    "TrioBase" : "0b29cd53415e7f0e668677749cad8daf81c68c2f"
+  },
+  "schema" : 1,
+  "steps" : [
+    {
+      "action" : "baseline",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 600,
+        "processUptimeSeconds" : 741297.956090597,
+        "wallUTC" : "2026-10-15T08:35:23Z"
+      },
+      "id" : "ABBE4C4E-B6F8-45F3-B365-DCE084DC133D",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 0,
+        "processUptimeSeconds" : 741297.369046674,
+        "wallUTC" : "2026-10-15T08:35:23Z"
+      }
+    },
+    {
+      "action" : "reconnect",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 1200,
+        "processUptimeSeconds" : 741298.55127701,
+        "wallUTC" : "2026-10-15T08:35:24Z"
+      },
+      "id" : "C6F50BC9-8678-44B3-A6BE-C85053A7ACB1",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 600,
+        "processUptimeSeconds" : 741297.970314321,
+        "wallUTC" : "2026-10-15T08:35:23Z"
+      }
+    },
+    {
+      "action" : "targetProfile",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 1200,
+        "processUptimeSeconds" : 741298.621159551,
+        "wallUTC" : "2026-10-15T08:35:24Z"
+      },
+      "id" : "78ED169E-9ACC-4BBB-954D-59A613B4F595",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 1200,
+        "processUptimeSeconds" : 741298.567802151,
+        "wallUTC" : "2026-10-15T08:35:24Z"
+      }
+    },
+    {
+      "action" : "dia",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 1200,
+        "processUptimeSeconds" : 741298.692141505,
+        "wallUTC" : "2026-10-15T08:35:24Z"
+      },
+      "id" : "3E15C54E-D259-427E-811D-178803CA5C2E",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 1200,
+        "processUptimeSeconds" : 741298.637283357,
+        "wallUTC" : "2026-10-15T08:35:24Z"
+      }
+    },
+    {
+      "action" : "enable",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 2100,
+        "processUptimeSeconds" : 741299.758129696,
+        "wallUTC" : "2026-10-15T08:35:25Z"
+      },
+      "id" : "A8012975-3DA3-445C-B955-8AF17E233BC8",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 1200,
+        "processUptimeSeconds" : 741298.708714893,
+        "wallUTC" : "2026-10-15T08:35:24Z"
+      }
+    },
+    {
+      "action" : "provision",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 2100,
+        "processUptimeSeconds" : 741300.014151001,
+        "wallUTC" : "2026-10-15T08:35:25Z"
+      },
+      "id" : "56A343D3-EC2A-4278-8C00-81ED39F52154",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 2100,
+        "processUptimeSeconds" : 741299.776722007,
+        "wallUTC" : "2026-10-15T08:35:25Z"
+      }
+    },
+    {
+      "action" : "observe",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 3900,
+        "processUptimeSeconds" : 741302.182267647,
+        "wallUTC" : "2026-10-15T08:35:27Z"
+      },
+      "id" : "0CA6A520-D874-4AAF-867C-3F239B6CCA49",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 2100,
+        "processUptimeSeconds" : 741300.034625054,
+        "wallUTC" : "2026-10-15T08:35:25Z"
+      }
+    },
+    {
+      "action" : "reconnectReception",
+      "finished" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 4500,
+        "processUptimeSeconds" : 741303.100343438,
+        "wallUTC" : "2026-10-15T08:35:28Z"
+      },
+      "id" : "21725ADE-97D0-4585-9605-649902A49673",
+      "result" : "completed",
+      "started" : {
+        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "monotonicSeconds" : 3900,
+        "processUptimeSeconds" : 741302.206117378,
+        "wallUTC" : "2026-10-15T08:35:27Z"
+      }
+    }
+  ],
+  "synthetic" : true,
+  "target" : "REDACTED",
+  "transport" : "fake-only",
+  "virtualElapsedSeconds" : 4500
+}

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BEE000012026101500000001 /* O5BenchCore in Frameworks */ = {isa = PBXBuildFile; productRef = BEE000032026101500000001 /* O5BenchCore */; };
 		B66A70BD2E6CFDB800F1641B /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B66A70BC2E6CFDB800F1641B /* Localizable.xcstrings */; };
 		B66A70BE2E6CFDB800F1641B /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B66A70BC2E6CFDB800F1641B /* Localizable.xcstrings */; };
 		D82CA8FA2D4B7305009C5276 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D82CA8F92D4B7305009C5276 /* CryptoSwift */; };
@@ -223,6 +224,7 @@
 				D850B71E2D81733D0095CDF2 /* RileyLinkBLEKit.framework in Frameworks */,
 				D8F83FB52D1563B70005D165 /* SlideButton in Frameworks */,
 				D82CA8FA2D4B7305009C5276 /* CryptoSwift in Frameworks */,
+				BEE000012026101500000001 /* O5BenchCore in Frameworks */,
 				D850B7202D81733D0095CDF2 /* RileyLinkKit.framework in Frameworks */,
 				D850B7222D81733D0095CDF2 /* RileyLinkKitUI.framework in Frameworks */,
 				D8B88D502D33A52F001893B6 /* LoopKit.framework in Frameworks */,
@@ -389,6 +391,7 @@
 			packageProductDependencies = (
 				D8F83FB42D1563B70005D165 /* SlideButton */,
 				D82CA8F92D4B7305009C5276 /* CryptoSwift */,
+				BEE000032026101500000001 /* O5BenchCore */,
 			);
 			productName = OmnipodKit;
 			productReference = D8F83F882D155ADA0005D165 /* OmnipodKit.framework */;
@@ -450,6 +453,7 @@
 			mainGroup = D8F83F7E2D155ADA0005D165;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				BEE000022026101500000001 /* XCLocalSwiftPackageReference "Research/O5Bench" */,
 				D8F83FB32D1563B70005D165 /* XCRemoteSwiftPackageReference "SlideButton" */,
 				D82CA8F82D4B7305009C5276 /* XCRemoteSwiftPackageReference "CryptoSwift" */,
 			);
@@ -984,6 +988,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		BEE000022026101500000001 /* XCLocalSwiftPackageReference "Research/O5Bench" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Research/O5Bench;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		D82CA8F82D4B7305009C5276 /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -1004,6 +1015,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BEE000032026101500000001 /* O5BenchCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BEE000022026101500000001 /* XCLocalSwiftPackageReference "Research/O5Bench" */;
+			productName = O5BenchCore;
+		};
 		D82CA8F92D4B7305009C5276 /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D82CA8F82D4B7305009C5276 /* XCRemoteSwiftPackageReference "CryptoSwift" */;

@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import O5BenchCore
 import LoopKit
 import LoopKitUI
 import RileyLinkBLEKit
@@ -644,6 +645,12 @@ struct OmniSettingsView: View  {
             }
 
             Section() {
+                if viewModel.podType.isO5 {
+                    NavigationLink(destination: O5BenchView()) {
+                        Text("Pod Experiment Dry Run")
+                            .foregroundColor(Color.primary)
+                    }
+                }
                 let localizedPodDiagnosticsStr = LocalizedString("Pod Diagnostics", comment: "Title for the Pod Diagnostic row and page")
                 NavigationLink(destination: PodDiagnosticsView(
                     title: localizedPodDiagnosticsStr,
