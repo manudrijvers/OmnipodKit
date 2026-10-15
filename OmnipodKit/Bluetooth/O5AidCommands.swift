@@ -254,4 +254,124 @@ struct O5AidCommands {
             return (payload, prefix)
         }
     }
+
+    // MARK: - CGM (Dexcom G7 connected directly to the pod)
+    //
+    // CGM values are binary key/value records: [u16 BE body length] then repeated [key u8][value],
+    // with a fixed value size per key and no per-entry length.
+
+    /// CGM interface manager (`4.2`).
+    /// Sends: `SE4.2=` + [0x00,0x04, 0x04,0x00, 0x01,0x07] — control (key 4) = enable (0), sensor type (key 1) = G7 (7)
+    /// Response: `ES4.2=[result code]`
+    ///
+    /// The two entries are in the order the Android O5 app most likely emits them (unsorted HashMap).
+    struct CgmInterfaceCommand {
+        static let feature = "4"
+        static let attribute = "2"
+        static let enableDexcomG7 = Data([0x00, 0x04, 0x04, 0x00, 0x01, 0x07])
+
+        static func payload() -> (data: Data, responsePrefix: String) {
+            let payload = O5AidCommands.extendedSetPayload(feature: feature, attribute: attribute, binaryData: enableDexcomG7)
+            let prefix = O5AidCommands.extendedSetResponsePrefix(feature: feature, attribute: attribute)
+            return (payload, prefix)
+        }
+
+        static func getPayload() -> (data: Data, responsePrefix: String) {
+            let payload = O5AidCommands.getPayload(feature: feature, attribute: attribute)
+            let prefix = O5AidCommands.responsePrefix(feature: feature, attribute: attribute)
+            return (payload, prefix)
+        }
+    }
+
+    /// Dexcom G7 sensor info (`4.1`).
+    /// Sends: `SE4.1=` + [0x00,0x12] + [0x02 + 4-digit pairing code] + [0x03 + 12-digit serial number], both ASCII
+    /// Response: `ES4.1=[result code]`
+    struct G7SensorInfoCommand {
+        static let feature = "4"
+        static let attribute = "1"
+
+        static func payload(pairingCode: String, serialNumber: String) -> (data: Data, responsePrefix: String) {
+            assert(pairingCode.utf8.count == 4 && serialNumber.utf8.count == 12, "G7 pairing code must be 4 and serial 12 characters")
+
+            let body = Data([0x02]) + Data(pairingCode.utf8) + Data([0x03]) + Data(serialNumber.utf8)
+            var binaryData = Data()
+            binaryData.appendBigEndian(UInt16(body.count))
+            binaryData.append(body)
+            let payload = O5AidCommands.extendedSetPayload(feature: feature, attribute: attribute, binaryData: binaryData)
+            let prefix = O5AidCommands.extendedSetResponsePrefix(feature: feature, attribute: attribute)
+            return (payload, prefix)
+        }
+
+        static func getPayload() -> (data: Data, responsePrefix: String) {
+            let payload = O5AidCommands.getPayload(feature: feature, attribute: attribute)
+            let prefix = O5AidCommands.responsePrefix(feature: feature, attribute: attribute)
+            return (payload, prefix)
+        }
+    }
+
+    /// Describes an Extended SET result code response body (e.g. "0" from `ES4.1=0`).
+    static func extendedSetResultDescription(_ response: Data) -> String {
+        let code = String(data: response, encoding: .ascii) ?? response.hexadecimalString
+        switch Int(code) {
+        case 0: return "\(code) (success)"
+        case -5: return "\(code) (invalid arguments)"
+        case -14: return "\(code) (not supported)"
+        case -19: return "\(code) (busy)"
+        default: return code
+        }
+    }
+}
+
+/// The CGM fields of a Unified AID Pod Status (`3.12`) response body, all big-endian:
+///
+///     [0] u16 length of the bytes that follow   [2] s16 EGV in mg/dL (0 = none)   [4] u32 EGV time (pod clock seconds)
+///     [8] u16 TDI   [10] u8 loop state (1 = manual, 2 = automated)   [11] s32 IOB   [15] u32 pod time (pod clock seconds)
+///     [19] u8 status flags   [20] u8 state flags   [21] u8 CGM type (4 = G6, 7 = G7)   [22] u16 CGM data length   [24] CGM data
+///
+/// Dexcom G7 CGM data (16 bytes): u32 session activation time, s32 session duration, s32 sensor timestamp,
+/// u8 algorithm state, u8 transmitter status, s8 trend rate, u8 trend rate valid (1 = valid).
+struct O5AidCgmStatus: CustomStringConvertible {
+    let egv: Int16
+    let egvAge: TimeInterval
+    let loopState: UInt8
+    let cgmType: UInt8
+    let cgmData: Data
+
+    init?(_ response: Data) {
+        let data = Data(response) // rebase indices of the response slice
+        guard data.count >= 24, Int(data[0...].toBigEndian(UInt16.self)) == data.count - 2 else {
+            return nil
+        }
+        egv = data[2...].toBigEndian(Int16.self)
+        egvAge = TimeInterval(data[15...].toBigEndian(UInt32.self)) - TimeInterval(data[4...].toBigEndian(UInt32.self))
+        loopState = data[10]
+        cgmType = data[21]
+        cgmData = data.subdata(in: 24..<data.count)
+        guard cgmData.count == Int(data[22...].toBigEndian(UInt16.self)) else {
+            return nil
+        }
+    }
+
+    var description: String {
+        var lines = [
+            egv == 0 ? "EGV: none" : "EGV: \(egv) mg/dL, \(Int(egvAge)) s old",
+            "Loop state: \(loopState)",
+            "CGM type: \(cgmType)",
+        ]
+        if cgmType == 7 && cgmData.count == 16 {
+            let sessionStart = cgmData[0...].toBigEndian(UInt32.self)
+            let sessionDuration = cgmData[4...].toBigEndian(Int32.self)
+            let sensorTimestamp = cgmData[8...].toBigEndian(Int32.self)
+            let trendRate = cgmData[15] == 1 ? String(Int8(bitPattern: cgmData[14])) : "not valid"
+            lines += [
+                "G7 algorithm state: \(cgmData[12])",
+                "G7 transmitter status: \(cgmData[13])",
+                "G7 trend rate: \(trendRate)",
+                "G7 session start: \(sessionStart), duration: \(sessionDuration), sensor timestamp: \(sensorTimestamp)",
+            ]
+        } else {
+            lines.append("CGM data: \(cgmData.hexadecimalString)")
+        }
+        return lines.joined(separator: "\n")
+    }
 }

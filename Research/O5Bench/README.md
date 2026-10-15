@@ -2,7 +2,8 @@
 
 This implementation follows the owner's updated **single-active-Pod** workflow:
 physically remove the Pod, leave it active in Trio during the experiment, then
-finish with normal deactivation/replacement. No second Pod, controller handoff,
+finish with normal deactivation/replacement. The existing G7 feature implementation is preserved alongside this runner.
+No second Pod, controller handoff,
 "Previous Pod" connection, or reuse of a deactivated Pod is required.
 
 **Current deliverable: offline runner and app preview. Physical access is disabled.**
@@ -16,7 +17,7 @@ replacement paths are unchanged.
 The revised lifecycle removes the earlier handoff blocker, but does not resolve
 transport policy or exclude competing writers:
 
-- At installed OmnipodKit `043b91d`, `BlePodMessageTransport.sendO5AidCommand`
+- At feature-branch OmnipodKit `363f75a`, `BlePodMessageTransport.sendO5AidCommand`
   explicitly constructs an `ENCRYPTED` packet. It does not consult provisioned
   command/default policy or use the signing-key selection used by ordinary
   delivery commands. `O5RegistrationData` persists keys and certificates but
@@ -156,14 +157,15 @@ infrastructure; it cannot select physical transport.
 
 ## Revisions, retained patch and validation limits
 
-- Trio base: `0b29cd53415e7f0e668677749cad8daf81c68c2f`.
-- Installed OmnipodKit base: `043b91dbf1958d26c55d927a6a8d651bc91f208d`.
+- Trio feature base: `80b79cb0085505edce278216063d2bb2e64c7191`.
+- OmnipodKit feature base: `363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e`.
 - Research checkout: `db92e426b97914ce1c80bdab45a74001a858840a`.
 - This working implementation is identified by the bundled
   [`source-checksums.json`](Sources/O5BenchCore/Resources/source-checksums.json),
-  including app integration, package, implementation and test sources. Regenerate
+  including app integration, preserved G7 feature files, package, implementation
+  and test sources. Regenerate
   the stamp after edits and rebuild before exporting evidence.
-- The retained validation patch targets a different OmnipodKit revision,
+- The retained validation patch targets the OmnipodKit feature base,
   `363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e`; it was **not** applied wholesale to
   the current framework. Its response codec was verified against recorded
   SHA-256 and reused unchanged. Original command builders are test fixtures only,

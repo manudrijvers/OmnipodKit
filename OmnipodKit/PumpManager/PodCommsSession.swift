@@ -1026,6 +1026,14 @@ class PodCommsSession: MessageTransportDelegate {
         return podInfoResponse
     }
 
+    /// Sends an O5 AID command (see O5AidCommands) and returns the response body after its prefix.
+    func sendO5AidCommand(_ command: (data: Data, responsePrefix: String)) throws -> Data {
+        guard let bleTransport = transport as? BlePodMessageTransport, podState.podType.isO5 else {
+            throw PodCommsError.diagnosticMessage(str: "O5 AID commands require an Omnipod 5 pod")
+        }
+        return try bleTransport.sendO5AidCommand(command.data, responsePrefix: command.responsePrefix)
+    }
+
     // Reconnected to the pod, and we know program was successful based on lastProgrammingMessageSeqNum
     private func unacknowledgedCommandWasReceived(pendingCommand: PendingCommand, podStatus: StatusResponse) {
         switch pendingCommand {

@@ -4,7 +4,7 @@
   "clock" : "virtual; not physical elapsed observation",
   "configurationConfirmed" : true,
   "enableVerified" : true,
-  "experimentID" : "A31E6403-9489-472B-B526-72411730DFA4",
+  "experimentID" : "8FCDFD74-8DEB-42AA-8BF8-C0406F48A982",
   "locks" : [
     "operator-observed-alarm"
   ],
@@ -13,147 +13,147 @@
   "redacted" : true,
   "redaction" : "Sharing exports omit all raw payloads, target and sensor identifiers, and operator free text. Checksums cover exported bytes only.",
   "revisions" : {
-    "OmnipodKitBase" : "043b91dbf1958d26c55d927a6a8d651bc91f208d",
+    "OmnipodKitBase" : "363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e",
     "research" : "db92e426b97914ce1c80bdab45a74001a858840a",
-    "runnerSourceSHA256" : "b0dfd0138969b7c7dfff7a6abe16ccc1c5911beab665a4d2acfcbfb302bb7f19",
-    "TrioBase" : "0b29cd53415e7f0e668677749cad8daf81c68c2f"
+    "runnerSourceSHA256" : "547b6f91565ed8b2bd04641ebd8eddde35461ded1be85488de78d3691296a968",
+    "TrioBase" : "80b79cb0085505edce278216063d2bb2e64c7191"
   },
   "schema" : 1,
   "steps" : [
     {
       "action" : "baseline",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 600,
-        "processUptimeSeconds" : 741297.956090597,
-        "wallUTC" : "2026-10-15T08:35:23Z"
+        "processUptimeSeconds" : 743347.308572978,
+        "wallUTC" : "2026-10-15T09:09:32Z"
       },
-      "id" : "ABBE4C4E-B6F8-45F3-B365-DCE084DC133D",
+      "id" : "B46FB846-EEC0-4BD3-9677-141F013300D6",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 0,
-        "processUptimeSeconds" : 741297.369046674,
-        "wallUTC" : "2026-10-15T08:35:23Z"
+        "processUptimeSeconds" : 743346.183986189,
+        "wallUTC" : "2026-10-15T09:09:31Z"
       }
     },
     {
       "action" : "reconnect",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 1200,
-        "processUptimeSeconds" : 741298.55127701,
-        "wallUTC" : "2026-10-15T08:35:24Z"
+        "processUptimeSeconds" : 743347.921570962,
+        "wallUTC" : "2026-10-15T09:09:33Z"
       },
-      "id" : "C6F50BC9-8678-44B3-A6BE-C85053A7ACB1",
+      "id" : "42BA6339-B183-4E8E-A9A5-2DEBBBC2D025",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 600,
-        "processUptimeSeconds" : 741297.970314321,
-        "wallUTC" : "2026-10-15T08:35:23Z"
+        "processUptimeSeconds" : 743347.322723238,
+        "wallUTC" : "2026-10-15T09:09:32Z"
       }
     },
     {
       "action" : "targetProfile",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 1200,
-        "processUptimeSeconds" : 741298.621159551,
-        "wallUTC" : "2026-10-15T08:35:24Z"
+        "processUptimeSeconds" : 743347.993690909,
+        "wallUTC" : "2026-10-15T09:09:33Z"
       },
-      "id" : "78ED169E-9ACC-4BBB-954D-59A613B4F595",
+      "id" : "137577CD-8166-4E70-94C8-29FBBB999B5C",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 1200,
-        "processUptimeSeconds" : 741298.567802151,
-        "wallUTC" : "2026-10-15T08:35:24Z"
+        "processUptimeSeconds" : 743347.937782052,
+        "wallUTC" : "2026-10-15T09:09:33Z"
       }
     },
     {
       "action" : "dia",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 1200,
-        "processUptimeSeconds" : 741298.692141505,
-        "wallUTC" : "2026-10-15T08:35:24Z"
+        "processUptimeSeconds" : 743348.064528319,
+        "wallUTC" : "2026-10-15T09:09:33Z"
       },
-      "id" : "3E15C54E-D259-427E-811D-178803CA5C2E",
+      "id" : "BD0CA196-2760-44B4-858C-520586356015",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 1200,
-        "processUptimeSeconds" : 741298.637283357,
-        "wallUTC" : "2026-10-15T08:35:24Z"
+        "processUptimeSeconds" : 743348.010062005,
+        "wallUTC" : "2026-10-15T09:09:33Z"
       }
     },
     {
       "action" : "enable",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 2100,
-        "processUptimeSeconds" : 741299.758129696,
-        "wallUTC" : "2026-10-15T08:35:25Z"
+        "processUptimeSeconds" : 743349.152642392,
+        "wallUTC" : "2026-10-15T09:09:34Z"
       },
-      "id" : "A8012975-3DA3-445C-B955-8AF17E233BC8",
+      "id" : "FFB2D264-A283-4A38-B1EC-8B6D61ACA49D",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 1200,
-        "processUptimeSeconds" : 741298.708714893,
-        "wallUTC" : "2026-10-15T08:35:24Z"
+        "processUptimeSeconds" : 743348.079863724,
+        "wallUTC" : "2026-10-15T09:09:33Z"
       }
     },
     {
       "action" : "provision",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 2100,
-        "processUptimeSeconds" : 741300.014151001,
-        "wallUTC" : "2026-10-15T08:35:25Z"
+        "processUptimeSeconds" : 743349.412629136,
+        "wallUTC" : "2026-10-15T09:09:35Z"
       },
-      "id" : "56A343D3-EC2A-4278-8C00-81ED39F52154",
+      "id" : "914EB8B8-4DE1-494D-8563-767B1F7978CE",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 2100,
-        "processUptimeSeconds" : 741299.776722007,
-        "wallUTC" : "2026-10-15T08:35:25Z"
+        "processUptimeSeconds" : 743349.171442419,
+        "wallUTC" : "2026-10-15T09:09:34Z"
       }
     },
     {
       "action" : "observe",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 3900,
-        "processUptimeSeconds" : 741302.182267647,
-        "wallUTC" : "2026-10-15T08:35:27Z"
+        "processUptimeSeconds" : 743351.708718361,
+        "wallUTC" : "2026-10-15T09:09:37Z"
       },
-      "id" : "0CA6A520-D874-4AAF-867C-3F239B6CCA49",
+      "id" : "0E0DF46D-B987-4448-B123-BDEB0E314DA8",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 2100,
-        "processUptimeSeconds" : 741300.034625054,
-        "wallUTC" : "2026-10-15T08:35:25Z"
+        "processUptimeSeconds" : 743349.432335281,
+        "wallUTC" : "2026-10-15T09:09:35Z"
       }
     },
     {
       "action" : "reconnectReception",
       "finished" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 4500,
-        "processUptimeSeconds" : 741303.100343438,
-        "wallUTC" : "2026-10-15T08:35:28Z"
+        "processUptimeSeconds" : 743352.641751895,
+        "wallUTC" : "2026-10-15T09:09:38Z"
       },
-      "id" : "21725ADE-97D0-4585-9605-649902A49673",
+      "id" : "D953841B-C834-4CD1-A388-66CC272511D0",
       "result" : "completed",
       "started" : {
-        "clockID" : "8A9880B9-9667-4987-B0CF-1D9BA41EA6AD",
+        "clockID" : "25173460-ADC9-4EF2-9907-A75C64203BC7",
         "monotonicSeconds" : 3900,
-        "processUptimeSeconds" : 741302.206117378,
-        "wallUTC" : "2026-10-15T08:35:27Z"
+        "processUptimeSeconds" : 743351.734767899,
+        "wallUTC" : "2026-10-15T09:09:37Z"
       }
     }
   ],

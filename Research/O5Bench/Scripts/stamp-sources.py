@@ -12,12 +12,17 @@ paths = sorted(root.glob('Sources/**/*.swift')) + sorted(root.glob('Tests/**/*.s
     root / 'Package.swift',
     kit / 'OmnipodKit/PumpManagerUI/Views/OmniSettingsView.swift',
     kit / 'OmnipodKit.xcodeproj/project.pbxproj',
+    kit / 'OmnipodKit/Bluetooth/O5AidCommands.swift',
+    kit / 'OmnipodKit/PumpManager/OmniPumpManager.swift',
+    kit / 'OmnipodKit/PumpManager/PodCommsSession.swift',
+    kit / 'OmnipodKit/PumpManagerUI/Views/PodDiagnosticsView.swift',
+    kit / 'OmniTests/O5/O5AidCommandsTests.swift',
 ]
 files = {str(p.relative_to(kit)): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
 digest = hashlib.sha256(json.dumps(files, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 value = {'sourceSHA256': digest, 'files': files, 'revisions': {
-    'TrioBase': '0b29cd53415e7f0e668677749cad8daf81c68c2f',
-    'OmnipodKitBase': '043b91dbf1958d26c55d927a6a8d651bc91f208d',
+    'TrioBase': '80b79cb0085505edce278216063d2bb2e64c7191',
+    'OmnipodKitBase': '363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e',
     'research': 'db92e426b97914ce1c80bdab45a74001a858840a',
     'runnerSourceSHA256': digest,
 }}
