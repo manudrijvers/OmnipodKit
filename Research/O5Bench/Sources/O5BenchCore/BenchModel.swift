@@ -14,12 +14,16 @@ enum BenchError: String, Error, LocalizedError {
     var errorDescription: String? { rawValue }
 }
 
-struct BenchTarget: Codable, Equatable {
-    let lot: String
-    let sequence: String
-    let bleAssociation: String
+public struct BenchTarget: Codable, Equatable {
+    public let lot: String
+    public let sequence: String
+    public let bleAssociation: String
     /// Opaque context reference, never a key or credential.
-    let secureContextReference: String
+    public let secureContextReference: String
+    public init(lot: String, sequence: String, bleAssociation: String, secureContextReference: String) {
+        self.lot = lot; self.sequence = sequence; self.bleAssociation = bleAssociation
+        self.secureContextReference = secureContextReference
+    }
     static let synthetic = BenchTarget(lot: "SYNTHETIC-LOT", sequence: "SYNTHETIC-SEQ",
         bleAssociation: "SYNTHETIC-BLE", secureContextReference: "SYNTHETIC-CONTEXT")
 }
@@ -54,25 +58,35 @@ struct BenchStamp: Codable {
     let clockID: String
 }
 
-/// Only a virtual clock is supported by this offline build. No elapsed value is
-/// represented as a real observation of a Pod.
+/// Live runs use process uptime; dry runs advance a virtual clock.
 final class BenchClock {
-    var elapsed: Double
+    private var virtualElapsed: Double
+    private var realStart: Double
+    let realTime: Bool
+    var elapsed: Double {
+        get { realTime ? ProcessInfo.processInfo.systemUptime - realStart : virtualElapsed }
+        set { virtualElapsed = newValue; realStart = ProcessInfo.processInfo.systemUptime - newValue }
+    }
     let id: String
-    init(elapsed: Double = 0, id: String = UUID().uuidString) { self.elapsed = elapsed; self.id = id }
+    init(elapsed: Double = 0, id: String = UUID().uuidString, realTime: Bool = false) {
+        virtualElapsed = elapsed; self.id = id; self.realTime = realTime
+        realStart = ProcessInfo.processInfo.systemUptime - elapsed
+    }
     var stamp: BenchStamp { BenchStamp(wall: Date(), monotonic: elapsed, processUptime: ProcessInfo.processInfo.systemUptime, clockID: id) }
-    func advance(_ seconds: Double) { elapsed += seconds }
+    func advance(_ seconds: Double) {
+        if realTime { Thread.sleep(forTimeInterval: seconds) } else { elapsed += seconds }
+    }
 }
 
 enum BenchAction: String, Codable, CaseIterable {
     case baseline, reconnect, targetProfile, dia, enable, provision, observe, reconnectReception, diagnostic
 }
 
-struct BenchRequest: Codable, Equatable {
-    enum Kind: String, Codable { case aid, legacyStatus, legacyPage7 }
-    let kind: Kind
-    let body: Data
-    let responsePrefix: String
+public struct BenchRequest: Codable, Equatable {
+    public enum Kind: String, Codable { case aid, legacyStatus, legacyPage7 }
+    public let kind: Kind
+    public let body: Data
+    public let responsePrefix: String
     var isMutation: Bool { kind == .aid && body.starts(with: Data("SE".utf8)) }
     static func get(_ attribute: String) -> Self {
         Self(kind: .aid, body: Data("G\(attribute)".utf8), responsePrefix: "\(attribute)=")
@@ -102,6 +116,7 @@ struct BenchOperation: Codable {
     var repliesReceived: BenchStamp?
     var validated: BenchStamp?
     var replies: [Data]?
+    var wireRecords: [BenchWireRecord]?
     var memberResults: [String] = []
     var outcome: String = "pending"
 }
@@ -121,6 +136,7 @@ struct BenchEvent: Codable {
 }
 
 struct BenchSession: Codable {
+    var physical: Bool?
     var schema = 1
     let id: String
     let target: BenchTarget
@@ -173,4 +189,10 @@ struct BenchLegacyStatus {
         alerts = b[15]
     }
     var active: Bool { progress == 8 || progress == 9 }
+}
+
+struct BenchWireRecord: Codable {
+    let phase: String
+    let bytes: Data
+    let time: BenchStamp
 }

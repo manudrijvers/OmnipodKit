@@ -19,9 +19,8 @@ public struct O5BenchView: View {
                 Text("Dry run only — simulated data and virtual time")
                     .font(.headline)
                 Text("The intended workflow keeps the removed Pod as Trio’s sole active Pod until you finish and replace it normally.")
-                Text("Physical experiments are unavailable: batch framing and signing-policy review are pending. This preview does not put your active Pod into bench mode.")
+                Text("Use Removed Pod Experiment in Pod settings to communicate with a real removed Pod. This screen only simulates commands.")
                     .foregroundStyle(.secondary)
-                Button("Physical experiment unavailable") {}.disabled(true)
             }
             Section("Dry-run session") {
                 Text(model.message).textSelection(.enabled)

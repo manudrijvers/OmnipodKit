@@ -85,7 +85,7 @@ enum BenchExport {
         try FileBenchStore.privateDirectory(directory)
         let operations: [[String: Any]] = session.operations.map { op in
             var row: [String: Any] = ["id": op.id, "actionID": op.actionID, "group": op.group,
-                "outcome": op.outcome, "signingPolicy": op.signingPolicy, "expected": op.expected,
+                "outcome": op.outcome, "signingPolicy": redacted ? op.signingPolicy.components(separatedBy: "; certificate SHA256")[0] : op.signingPolicy, "expected": op.expected,
                 "memberResults": op.memberResults,
                 "prepared": stamp(op.prepared),
                 "requests": op.requests.map { request -> [String: Any] in
@@ -104,12 +104,16 @@ enum BenchExport {
             if let batch = op.applicationBatch {
                 row["applicationBatchHex"] = redacted ? "REDACTED" : batch.hexadecimalString
             }
-            row["lowerLevelRetransmissions"] = 0 // Fake transport has none; never a logical SET replay.
+            row["wireRecords"] = (op.wireRecords ?? []).map { record -> [String: Any] in
+                ["phase": record.phase, "byteCount": record.bytes.count, "time": stamp(record.time),
+                 "hex": redacted ? "REDACTED" : record.bytes.hexadecimalString]
+            }
+            row["lowerLevelRetransmissions"] = session.physical == true ? "0; current BLE packet sender has no retransmission loop" : "0"
             return row
         }
         var manifest: [String: Any] = ["schema": 1, "experimentID": session.id,
-            "synthetic": true, "transport": "fake-only", "clock": "virtual; not physical elapsed observation",
-            "physicalWritesEnabled": false, "redacted": redacted,
+            "synthetic": session.physical != true, "transport": session.physical == true ? "BLE" : "fake-only", "clock": session.physical == true ? "process-uptime" : "virtual; not physical elapsed observation",
+            "physicalWritesEnabled": session.physical == true && session.armed && session.locks.isEmpty && session.baselineComplete && session.reconnectComplete, "redacted": redacted,
             "revisions": session.revisions, "activationProvenance": session.activationProvenance,
             "target": redacted ? "REDACTED" : "see private-session.json",
             "locks": session.locks, "virtualElapsedSeconds": session.virtualElapsed,

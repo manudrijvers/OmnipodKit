@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test fixture generation only. The product has no run-all control or physical transport.
+# Test fixture generation only. The CLI remains fake-only; the physical path is in the app.
 set -euo pipefail
 bench_root="$(cd "$(dirname "$0")/.." && pwd)"
 bench_work="$(mktemp -d "${TMPDIR:-/tmp}/o5-bench-smoke.XXXXXX")"

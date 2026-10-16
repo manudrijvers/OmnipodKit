@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import O5BenchCore
 import LoopKit
 import os.log
 
@@ -1222,4 +1223,48 @@ class PodCommsSession: MessageTransportDelegate {
             assertionFailure("Unsupported state update")
         }
     }
+}
+
+// MARK: - Isolated physical experiment reads (no treatment-state updates)
+extension PodCommsSession {
+    func benchExchange(_ requests: [BenchRequest], policy: O5BenchSigningPolicy,
+                       authorize: @escaping () throws -> Void, capture: @escaping O5BenchWireCapture) throws -> [Data] {
+        guard let ble = transport as? BlePodMessageTransport, podState.podType.isO5 else {
+            throw PodCommsError.noPodPaired
+        }
+        ble.benchAuthorization = authorize; ble.benchCapture = capture
+        defer { ble.benchAuthorization = nil; ble.benchCapture = nil }
+        try authorize()
+        if requests.count == 2 && requests.allSatisfy({ $0.body.starts(with: Data("SE".utf8)) }) {
+            // One application batch in one encrypted packet; never two SET sends.
+            let payload = requests[0].body + Data([0x2c]) + requests[1].body
+            return [try ble.sendO5AidCommand(payload, responsePrefix: "", benchSigningMode: policy.mode)]
+        }
+        if requests.count == 2, requests[0].kind == .aid, requests[0].body == Data("G3.12".utf8),
+           requests[1].kind == .legacyPage7 {
+            return try ble.sendBenchStatusBatch(mode: policy.mode)
+        }
+        return try requests.map { request in
+            try authorize()
+            switch request.kind {
+            case .aid:
+                return try ble.sendO5AidCommand(request.body, responsePrefix: "", benchSigningMode: policy.mode)
+            case .legacyStatus, .legacyPage7:
+                let type: PodInfoResponseSubType = request.kind == .legacyStatus ? .detailedStatus : .noSeqStatus
+                let command = GetStatusCommand(podInfoType: type)
+                // Direct transport read persists only sequence/nonce state through
+                // its delegate. It does not feed status/glucose into treatment stores.
+                let reply = try ble.sendMessage(Message(address: podState.address,
+                    messageBlocks: [command], sequenceNum: ble.messageNumber))
+                guard reply.address == podState.address, reply.messageBlocks.count == 1 else {
+                    throw PodCommsError.invalidData
+                }
+                if request.kind == .legacyStatus, let info = reply.messageBlocks[0] as? PodInfoResponse,
+                   info.podInfoResponseSubType == .detailedStatus { return info.podInfo.data }
+                if request.kind == .legacyPage7, let status = reply.messageBlocks[0] as? StatusResponse { return status.data }
+                throw PodCommsError.invalidData
+            }
+        }
+    }
+    func allowBenchCloseout() { (transport as? BlePodMessageTransport)?.benchCloseout = true }
 }

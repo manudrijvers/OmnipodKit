@@ -8,6 +8,7 @@
 //
 
 import HealthKit
+import O5BenchCore
 import LoopKit
 import RileyLinkKit
 import RileyLinkBLEKit
@@ -1969,6 +1970,7 @@ extension OmniPumpManager {
             switch result {
             case .success(let session):
                 do {
+                    session.allowBenchCloseout()
                     try session.deactivatePod()
                     completion(nil)
                 } catch let error {
@@ -2159,17 +2161,7 @@ extension OmniPumpManager {
     /// Tells the active O5 pod to connect directly to the given Dexcom G7 sensor:
     /// enables the pod's CGM interface for a G7 (SE4.2), then sends the sensor identity (SE4.1).
     func connectDexcomG7(pairingCode: String, serialNumber: String) async throws -> String {
-        return try await runO5AidSession(withName: "Connect Dexcom G7") { session in
-            let interfaceResult = try session.sendO5AidCommand(O5AidCommands.CgmInterfaceCommand.payload())
-            var output = "SE4.2 (enable, G7): \(O5AidCommands.extendedSetResultDescription(interfaceResult))\n"
-            guard interfaceResult == Data("0".utf8) else {
-                return output
-            }
-            let sensorInfoResult = try session.sendO5AidCommand(
-                O5AidCommands.G7SensorInfoCommand.payload(pairingCode: pairingCode, serialNumber: serialNumber))
-            output += "SE4.1 (pairing code, serial): \(O5AidCommands.extendedSetResultDescription(sensorInfoResult))\n"
-            return output
-        }
+        throw PodCommsError.diagnosticMessage(str: "Use Removed Pod Experiment in Pod settings to provision a G7 during an off-body experiment.")
     }
 
     /// Reads the active O5 pod's CGM interface (G4.2), sensor info (G4.1) and AID status (G3.12).
@@ -3547,5 +3539,12 @@ extension OmniPumpManager {
             log.error("@@@ acknowledge alert %{public}@ not found!", alertIdentifier)
             completion(nil)
         }
+    }
+}
+
+extension OmniPumpManager {
+    func makePhysicalBenchConnection() throws -> O5PhysicalBenchConnection {
+        guard let comms = podComms as? BlePodComms, podType.isO5 else { throw OmniPumpManagerError.noPodPaired }
+        return try comms.makePhysicalBenchConnection()
     }
 }

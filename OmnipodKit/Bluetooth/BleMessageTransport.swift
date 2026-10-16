@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import O5BenchCore
 import CryptoKit
 import os.log
 
@@ -168,6 +169,18 @@ class BlePodMessageTransport: MessageTransport {
 
     private var signingKey: Data? // O5 only
 
+    // Only the research adapter installs these. Ordinary writers must pass the
+    // persistent interlock at the final application-send boundary.
+    var benchAuthorization: (() throws -> Void)?
+    var benchCapture: O5BenchWireCapture?
+    var benchCloseout = false
+    private func authorizeBench(closeoutReadOrStop: Bool = false) throws {
+        guard manager.podType.isO5 else { return }
+        if let authorize = benchAuthorization { try authorize() }
+        else { try O5BenchInterlock.check(controller: myId, closeout: benchCloseout && closeoutReadOrStop) }
+    }
+
+
     weak var messageLogger: MessageLogger?
     weak var delegate: MessageTransportDelegate?
 
@@ -205,6 +218,9 @@ class BlePodMessageTransport: MessageTransport {
     /// Handles both DASH and O5 Type 1 messages as well as O5 Type 4 signed messages as needed.
     /// The ECDSA signature covers the complete encrypted message: AAD(16) + ciphertext + tag(8).
     func sendMessage(_ message: Message) throws -> Message {
+        let closeoutTypes: Set<MessageBlockType> = [.getStatus, .cancelDelivery, .deactivatePod]
+        let closeoutAllowed = message.messageBlocks.allSatisfy { closeoutTypes.contains($0.blockType) }
+        try authorizeBench(closeoutReadOrStop: closeoutAllowed)
 
         guard manager.peripheral.state == .connected else {
             throw PodCommsError.podNotConnected
@@ -222,9 +238,12 @@ class BlePodMessageTransport: MessageTransport {
         log.bleDebug("[transport] send phase=write msgSeq=%{public}d nonceSeq=%{public}d messageNumber=%{public}d",
                     msgSeq, nonceSeq, messageNumber)
 
+        try authorizeBench(closeoutReadOrStop: closeoutAllowed)
+        try benchCapture?("legacy-send-mode-1", dataToSend)
         let writeResult = manager.sendMessagePacket(sendMessage)
         switch writeResult {
         case .sentWithAcknowledgment:
+            try benchCapture?("transport-write-ack", Data())
             break;
         case .sentWithError(let error):
             log.error("[transport] failed phase=write-ack msgSeq=%{public}d nonceSeq=%{public}d messageNumber=%{public}d error=%{public}@",
@@ -423,6 +442,7 @@ class BlePodMessageTransport: MessageTransport {
     /// - Parameter rawData: The raw bytes to send (will be SLPE-wrapped and encrypted)
     /// - Returns: The raw decrypted response payload (after SLPE unwrapping)
     func sendRawO5Data(_ rawData: Data) throws -> Data {
+        try authorizeBench()
         guard let enDecrypt = self.enDecrypt else {
             throw PodCommsError.podNotConnected
         }
@@ -472,6 +492,7 @@ class BlePodMessageTransport: MessageTransport {
 
         incrementNonceSeq()
         let decrypted = try enDecrypt.decrypt(readMessage, nonceSeq)
+        try benchCapture?("raw-response", decrypted.payload)
 
         // Extract the raw response payload from SLPE wrapping
         // Try "0.0=" first, then "3.12="
@@ -516,7 +537,14 @@ class BlePodMessageTransport: MessageTransport {
     ///   - wrappedPayload: SLPE-wrapped command data (from O5AidCommands)
     ///   - responsePrefix: The SLPE key to extract from the response (e.g., "3.2=", "ES255.2=")
     /// - Returns: The raw response data after SLPE unwrapping
-    func sendO5AidCommand(_ wrappedPayload: Data, responsePrefix: String) throws -> Data {
+    func sendO5AidCommand(_ wrappedPayload: Data, responsePrefix: String,
+                          benchSigningMode: O5BenchSigningPolicy.Mode? = nil) throws -> Data {
+        try authorizeBench()
+        let secondaryKey: P256.Signing.PrivateKey?
+        if benchSigningMode == .secondarySigned {
+            guard let signingKey else { throw PodCommsError.noCertificateFound }
+            secondaryKey = try P256.Signing.PrivateKey(rawRepresentation: signingKey)
+        } else { secondaryKey = nil }
         guard let enDecrypt = self.enDecrypt else {
             throw PodCommsError.podNotConnected
         }
@@ -528,7 +556,7 @@ class BlePodMessageTransport: MessageTransport {
         incrementMsgSeq()
 
         let msg = MessagePacket(
-            type: MessageType.ENCRYPTED,
+            type: secondaryKey == nil ? MessageType.ENCRYPTED : MessageType.ENCRYPTED_SIGNED,
             source: self.myId,
             destination: self.podId,
             payload: wrappedPayload,
@@ -537,15 +565,22 @@ class BlePodMessageTransport: MessageTransport {
         )
 
         incrementNonceSeq()
-        let encrypted = try enDecrypt.encrypt(msg, nonceSeq)
+        var encrypted = try enDecrypt.encrypt(msg, nonceSeq)
+        if let secondaryKey {
+            let signingInput = encrypted.asData(forEncryption: false).prefix(16) + encrypted.payload
+            encrypted.signatureData = Data(try secondaryKey.signature(for: signingInput).rawRepresentation)
+        }
 
         log.default("O5 AID Send (%{public}d bytes wrapped): %{public}@",
                      wrappedPayload.count, wrappedPayload.hexadecimalString)
         messageLogger?.didSend(wrappedPayload)
 
+        try authorizeBench()
+        try benchCapture?("aid-send-mode-\(benchSigningMode?.rawValue ?? 1)", wrappedPayload)
         let writeResult = manager.sendMessagePacket(encrypted)
         switch writeResult {
         case .sentWithAcknowledgment:
+            try benchCapture?("transport-write-ack", Data())
             break
         case .sentWithError(let error):
             throw PodCommsError.commsError(error: error)
@@ -561,6 +596,7 @@ class BlePodMessageTransport: MessageTransport {
 
         incrementNonceSeq()
         let decrypted = try enDecrypt.decrypt(readMessage, nonceSeq)
+        try benchCapture?("raw-response", decrypted.payload)
 
         // Unconditional raw-response capture (before the prefix check throws it away). On a
         // "rejected" registration this is THE datum we need to iterate the envelope.
@@ -613,4 +649,23 @@ private func requiresType4Signing(for blocks: [MessageBlock]) -> Bool {
     ]
 
     return blocks.contains { o5SignedCommandTypes.contains($0.blockType) }
+}
+
+extension BlePodMessageTransport {
+    func sendBenchStatusBatch(mode: O5BenchSigningPolicy.Mode) throws -> [Data] {
+        try authorizeBench()
+        let command = Message(address: podId,
+            messageBlocks: [GetStatusCommand(podInfoType: .noSeqStatus)], sequenceNum: messageNumber)
+        let payload = try O5BenchReadBatchCodec.request(legacyMessage: command.encoded())
+        incrementMessageNumber()
+        let envelope = try sendO5AidCommand(payload, responsePrefix: "", benchSigningMode: mode)
+        let parts = try O5BenchReadBatchCodec.replies(envelope)
+        let legacy = try Message(encodedData: parts.legacyMessage)
+        guard legacy.address == podId, legacy.sequenceNum == messageNumber,
+              legacy.messageBlocks.count == 1, let status = legacy.messageBlocks.first as? StatusResponse else {
+            throw PodCommsError.invalidData
+        }
+        incrementMessageNumber()
+        return [parts.aid, status.data]
+    }
 }

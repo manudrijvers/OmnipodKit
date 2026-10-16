@@ -1,208 +1,134 @@
 # Removed-Pod experiment runner
 
-This implementation follows the owner's updated **single-active-Pod** workflow:
-physically remove the Pod, leave it active in Trio during the experiment, then
-finish with normal deactivation/replacement. The existing G7 feature implementation is preserved alongside this runner.
-No second Pod, controller handoff,
-"Previous Pod" connection, or reuse of a deactivated Pod is required.
+The physical path uses the owner's single-active-Pod workflow: physically remove
+this Pod, leave it active in Trio, run separate experiment actions, then deactivate
+and replace it normally. It uses the existing controller identity, LTK, BLE
+association and sequence state. There is no second active Pod or controller handoff.
 
-**Current deliverable: offline runner and app preview. Physical access is disabled.**
-In Omnipod 5 settings, open **Pod Experiment Dry Run**. All its actions use a fake
-transport and a virtual clock. Opening it does not put the active Pod into a
-physical bench mode. The existing pump-manager, activation, delivery and
-replacement paths are unchanged.
+**Implementation status:** a real BLE adapter and screen are implemented. The
+portable tests and iOS-source syntax checks run on Linux; a full Xcode build and
+physical Pod acceptance have not been performed. This is experimental source,
+not a verified installable iOS build.
 
-## Why physical actions remain disabled
+## In the app
 
-The revised lifecycle removes the earlier handoff blocker, but does not resolve
-transport policy or exclude competing writers:
+Open Omnipod 5 settings → **Removed Pod Experiment**. Confirm that the Pod has
+been removed and no longer supplies therapy, then start the session. Starting
+reserves the existing active Pod and automatically opens protected local capture.
+It does not suspend or change its existing delivery program. Ordinary app
+commands are blocked while this Pod is reserved, including background commands.
 
-- At feature-branch OmnipodKit `363f75a`, `BlePodMessageTransport.sendO5AidCommand`
-  explicitly constructs an `ENCRYPTED` packet. It does not consult provisioned
-  command/default policy or use the signing-key selection used by ordinary
-  delivery commands. `O5RegistrationData` persists keys and certificates but
-  does not expose a validated command-policy selection API. No installation's
-  applicable policy was supplied or inspected in this implementation.
-- The research establishes comma-separated application batches. This runner
-  encodes the exact enable/identity batch and validates its two result members
-  offline. The installed BLE AID API strips **one** response prefix; no complete
-  multi-member physical exchange, policy selection and result integration has
-  been demonstrated. The runner does not substitute two standalone SET calls.
-- This fallback has no access to the live controller. Therefore no physical
-  exclusive-writer mechanism is claimed. Connecting it to the active Pod still
-  requires a persisted, target-bound bench lock at dispatch, including queued
-  delivery/background commands, and exclusion of bench data from therapy stores.
-  Merely disabling a screen or asking the operator to turn off looping is not
-  that mechanism. Normal, explicitly targeted deactivation must remain available
-  after evidence capture; the removed Pod must not resume ordinary dosing.
+Run the buttons separately, reviewing each result:
 
-These are concrete missing integrations, not a requirement for a second
-controller. The relevant existing paths are
-[`BlePodComms.bleRunSession`](../../OmnipodKit/Bluetooth/BlePodComms.swift),
-[`BleMessageTransport`](../../OmnipodKit/Bluetooth/BleMessageTransport.swift),
-[`O5RegistrationData`](../../OmnipodKit/Bluetooth/Pair/O5RegistrationData.swift),
-and [`OmniPumpManager`](../../OmnipodKit/PumpManager/OmniPumpManager.swift).
+1. Capture baseline: ten real minutes, with an initial verified export.
+2. Reconnect and repeat baseline: ten minutes, without configuration writes.
+3. Enable only: control key 4 only; observe for fifteen minutes.
+4. Enter the actual four-character G7 code and twelve-character serial, preserving
+   leading zeroes, then provision G7.
+5. Observe reception for thirty minutes; reconnect and observe again if successful.
+6. Export the session, then leave the screen and deactivate/replace normally.
 
-The same active `PodState` contains lot/sequence, BLE association, LTK and transport
-state. Leaving the Pod active preserves that context. In contrast, normal
-`deactivatePod` sends deactivation; `forgetPod` disconnects BLE and
-`prepForNewPod` clears the active context and advances IDs. The Previous Pod UI
-only displays historical details. None of those paths is modified here.
+Keep the app and experiment screen foregrounded. The screen prevents idle sleep.
+Leaving the foreground, stopping, an alarm, a feed interruption, faults, malformed
+replies, missing capture or an uncertain command stops the mutation chain. Reopened
+physical sessions permit diagnostics and export only; they never replay a SET.
+The isolation lock persists until normal discard/replacement. A new session cannot
+silently erase the old session or its uncertainty.
 
-## Implemented behavior
+Logging needs no special setting. **Export redacted session** omits raw bytes,
+Pod/sensor identifiers, the certificate fingerprint and operator notes. **Export
+private raw capture** preserves exact application bytes, including parse failures
+and replies received before an ACK failure. It contains identifiers, but neither
+export contains signing keys, session keys or credentials. Operator alarm time is
+recorded separately from software fault detection. Phone/watch observations are
+operator reports; the runner does not infer that those feeds are healthy.
 
-Each UI button or CLI invocation performs one action. There is no product
-run-all control. Baseline uses 10 simulated minutes, enable observation 15,
-reception 30, and reconnect checks 10, with 60-second simulated read cadence.
-These are experiment choices, not manufacturer timing guarantees.
+**Pod Experiment Dry Run** and the CLI remain explicitly simulated alternatives.
+They use virtual time and synthetic identities; their exports say so.
 
-| Action | Implemented offline behavior |
-| --- | --- |
-| Baseline and export | Full target match, capture, verified redacted baseline export, timed reads, firmware/BLE, age, nominal remaining service time, faults, reservoir/alerts, mode/readiness and sensor state |
-| Reconnect | No programming; repeat baseline reads |
-| Target / DIA | Recovered read-group order; all 48 values / raw half-hour count; no setup-complete state fabricated |
-| Enable only | Exactly `SE4.2=` + `00 02 04 00`; DEFAULT 255 and recognized empty identity gate; canonical ACK, matching readback, Manual/nonfaulted observation required |
-| Provision | Matching validated identity skips SET; different/incomplete/nonempty identity blocks; one two-member application batch, then separate recovered status group, then labeled diagnostic readback |
-| Observe | Distinct sensor timestamps and freshness, raw special glucose values, raw algorithm/transmitter states, independent phone/watch observations |
-| Reconnect after reception | No SET; check persisted configuration and new sensor timestamps |
-| Alarm / export | Independent operator timestamp; redacted or private structured export, including failed/interrupted steps |
+## Transport and isolation
 
-Fresh parsed status is required before every simulated mutation, with a 90-second
-freshness limit checked again at dispatch. Firmware 9.0.4 / BLE 5.0.2 is the only
-allowed simulated mutation branch. Control values other than enabled 0 and the
-narrow DEFAULT 255 first-enable case are not silently treated as disabled.
+`BlePodComms.makePhysicalBenchConnection` acquires a durable interlock on the
+serialized Pod session queue after earlier commands finish. Its permit binds lot,
+sequence, BLE identifier and a one-way context reference incorporating controller,
+Pod address, LTK and the active signing key. It rechecks the active context at the
+application send boundary. Ordinary legacy, raw and AID transport entry points
+check the lock too, including already-queued sessions.
 
-The G7 command writes only four-byte code and twelve-byte serial. Values are
-validated as fixed-length ASCII alphanumeric text, preserve leading zeroes and
-compare case-insensitively. No desired-type key, timing, address or optional
-identity field is added. Only synthetic identity is accepted by the CLI/UI.
-The retained codec's stricter numeric-only comparison remains unchanged for its
-original tests; the runner uses `BenchIdentity.matches` for its explicit policy.
+The normal deactivation path has a narrow exception for status, cancellation and
+deactivation commands. There is no resume-to-therapy button for the removed Pod.
+Normal discard clears the interlock; the session files remain. An unreadable or
+corrupt interlock blocks ordinary commands. Interlock metadata remains readable
+after first unlock; private research journals use complete file protection.
 
-The numeric reception criterion is deliberately limited: range 39…401, Pod-relative
-age at most 360 seconds, at least two distinct sensor timestamps, the first new sample within six minutes, no stale/invalid
-interval after it, and continued fresh reporting at the end.
-It is **not** an official pairing-state decoder or a firmware acceptance claim.
-Raw sensor algorithm/transmitter states and negative/special EGV values are kept
-separately. A received history record or phone timestamp is never counted as a
-new sensor sample. Page 7 remains an opaque synthetic fixture; its physical
-legacy wrapper/message sequence and parser integration are not claimed here.
+Experiment reads use the existing transport directly. Only secure sequence/nonce
+state is returned through the transport delegate. Experimental glucose, status and
+history are not submitted to the pump's treatment-state update methods or HealthKit.
 
-## Persistence and separation
+The runner requires fresh, parsed Manual/active/nonfaulted status, firmware 9.0.4 /
+BLE 5.0.2, successful baseline/reconnect and an armed off-body session before writes.
+The first enable mutation accepts only the reviewed DEFAULT 255 + empty identity
+branch. An already-enabled baseline skips enablement and labels it unexercised.
+Matching identity skips provisioning; different or incomplete identity blocks it.
 
-`O5BenchCore` depends only on Foundation (and SwiftUI for its optional view).
-It accepts no `OmniPumpManager`, BLE manager, HealthKit store or treatment store.
-The concrete fake transport has no radio implementation. Its target includes
-lot, sequence, BLE association and an opaque secure-context reference; no key or
-credential is accepted or serialized. Both UI and CLI use this same runner.
+Provisioning sends **one** comma-separated application batch containing control-only
+`SE4.2` then `SE4.1`, validates both results, and sends the separate `G3.12` + wrapped
+legacy page-7 read batch. Binary replies are split using lengths. Additional
+`4.2`/`4.1` readback is labeled diagnostic. No desired-type key or activation setup
+write is added. The previous unguarded “Connect Dexcom G7” mutation entry point
+now directs the operator to this runner.
 
-A process lease and recursive in-process lock serialize actions. Session snapshots
-are written via exclusive temporary file, fsync, atomic rename and directory
-fsync. Files are mode 0600 and directories 0700; iOS adds complete file protection
-and excludes research directories from backup. Save failure before dispatch
-prevents send; failure after dispatch locks the chain.
+The physical UI omits optional target/DIA groups; these remain dry-run fixtures.
+Observation uses real process uptime and a sixty-second cadence. Reception is a
+limited numeric/freshness test, not a manufacturer pairing declaration: distinct
+sensor timestamps, range 39–401, age at most 360 seconds, no stale interval after
+first reception, and fresh reporting at the end. Raw special values and sensor
+states are retained independently.
 
-Before a send, the journal saves operation/experiment/action IDs, complete target
-reference, exact application requests, expected result, simulated signing policy
-and timestamps. Send-start, transport completion, raw replies and validation are
-separate milestones. The complete two-member application batch and its response
-envelope are preserved. Raw bytes remain available after parser failures.
+## Signing selection and remaining hardware uncertainty
 
-An interrupted action remains in the journal across reload. Diagnostics,
-reconnect reads and export remain available, but a later matching readback does
-not clear uncertainty or replay/advance a mutation. Restart tests inject failure
-at preparation, send-start, transport-complete, reply-received, validation and
-observation. A disk-backed reload test additionally verifies durable recovery.
-The fake has zero lower-level retransmissions; no physical retransmission audit
-is claimed.
+Before reserving the Pod, the adapter loads its controller registration, verifies
+that its signing key matches the active Pod context, and extracts the certificate's
+`commands:` policy from structurally parsed DER extension URI/IA5 fields. This is
+policy extraction from an already-provisioned registration, not certificate trust
+validation. Missing, ambiguous, malformed or unsupported policies fail before any
+experiment command is sent. No certificate from the user's installed phone was
+available for validation here.
 
-Each event records UTC wall time, virtual monotonic time/clock ID and system
-uptime. Virtual elapsed time is explicitly labeled in exports and the UI. Actual
-hardware observation, clock continuity across device reboots, and background
-execution on iOS have not been demonstrated.
+The chosen policy is the traced **iOS signing ID 0 registration default**. Mode 1
+uses encryption; mode 4 uses the existing secondary P-256 signing key over the
+same encrypted header/payload construction as Trio's signed commands. Primary-key
+mode is unsupported and blocked. There is no unsigned-first or signed-on-rejection
+retry. The selected mode and certificate fingerprint are recorded privately;
+standalone legacy status reads retain Trio's existing mode 1. This is an explicit
+Trio policy choice based on the iOS trace, not a claim that Android batch ID 65536
+has the same policy or that Pod acceptance has been established.
 
-## Exports and verification
+References in `manudrijvers/re-omnipod`:
 
-Each export is a new directory containing `manifest.json`, `exchanges.ndjson`,
-`events.ndjson` and `SHA256SUMS`. Private exports additionally contain the full
-private session. Sharing exports omit **all** raw payload bytes, target/sensor
-identifiers and free-text operator notes; safe decoded observations and result
-milestones remain. Checksums cover exported bytes and are verified by rereading
-them. They are integrity checks, not authentication or original-payload hashes.
+- `analysis/cgm-provisioning/ios-signing-policy.md`
+- `analysis/cgm-provisioning/signing-policy.md`
+- `analysis/cgm-provisioning/g7-enable-sequence.md`
+- `analysis/cgm-provisioning/reply-parsers.md`
+- `analysis/mode-switch/android-crosscheck.md` (legacy status batch wrapper)
 
-[`Samples/redacted-session`](Samples/redacted-session) was generated by separate
-CLI processes exercising the successful synthetic path and independent alarm
-marking. It contains no real Pod or sensor data. Verify it independently:
+## Validation and provenance
 
-```sh
-python3 Scripts/verify-export.py Samples/redacted-session
-python3 Scripts/stamp-sources.py --check
-```
+`swift test` covers strict parsing, action gates, uncertainty, durable storage,
+redaction, signing-policy extraction, binary read batches, target checks and
+persistent isolation. Physical branches use a deterministic radio double in tests;
+none of those results are physical Pod evidence. The optional private incident
+replay is skipped unless `O5_INCIDENT_LOG` is supplied.
 
-Build/test on a host with Swift 5.9 or later:
+`Validation/physical-runner-tests.log` records current portable tests.
+`Validation/physical-integration-checks.txt` records the iOS syntax check and its
+limits. Earlier logs and `retained-validation-provenance.json` remain historical
+records of the offline implementation and original retained parser patch.
+`Samples/redacted-session` is an explicitly synthetic export.
 
-```sh
-swift test
-swift run o5-bench help
-swift run o5-bench /tmp/experiment.private init
-swift run o5-bench /tmp/experiment.private arm --confirm-off-body
-swift run o5-bench /tmp/experiment.private baseline /tmp/new-baseline-export
-```
-
-Continue with one command at a time (`reconnect`, `enable`, `provision`, `observe`,
-`reconnectReception`). `export <new-directory>` is redacted by default;
-`--private` explicitly includes private requests/replies. Do not enter real
-identifiers in this offline CLI. The smoke-test script is fixture-generation
-infrastructure; it cannot select physical transport.
-
-## Revisions, retained patch and validation limits
-
-- Trio feature base: `80b79cb0085505edce278216063d2bb2e64c7191`.
-- OmnipodKit feature base: `363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e`.
-- Research checkout: `db92e426b97914ce1c80bdab45a74001a858840a`.
-- This working implementation is identified by the bundled
-  [`source-checksums.json`](Sources/O5BenchCore/Resources/source-checksums.json),
-  including app integration, preserved G7 feature files, package, implementation
-  and test sources. Regenerate
-  the stamp after edits and rebuild before exporting evidence.
-- The retained validation patch targets the OmnipodKit feature base,
-  `363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e`; it was **not** applied wholesale to
-  the current framework. Its response codec was verified against recorded
-  SHA-256 and reused unchanged. Original command builders are test fixtures only,
-  so their activation-style command cannot be selected by the runner. The
-  associated setup/pairing integration changes were intentionally not installed.
-  [`retained-validation-provenance.json`](retained-validation-provenance.json)
-  records the original patch and source hashes.
-
-**Final result: 60 tests passed, one optional private-log replay skipped, zero failures.**
-The CLI smoke test completed across separate processes; independent verification
-checked three export data files, 89 exchanges and 100 events. The edited Xcode
-project parsed with Foundation and the SwiftUI source passed syntax parsing;
-this is not iOS type checking.
-
-See [`Validation/swift-tests.txt`](Validation/swift-tests.txt) and
-[`Validation/cli-smoke.txt`](Validation/cli-smoke.txt). The private original-log
-replay test is optional and is skipped unless `O5_INCIDENT_LOG` is supplied.
-The new tests cover gates, exact serialization, member failures, missing/empty
-results, stale/unknown state, identity comparison, every send milestone, durable
-reload, logging loss, concurrency, negative glucose, interrupted reception,
-independent operator observations and export redaction/checksums.
-
-Linux tests compile the actual package/CLI and response codec. They do not
-compile SwiftUI or link the iOS framework. This environment has no Xcode and most
-Trio submodules are uninitialized. A full Xcode build and device UI validation
-remain outstanding. No physical Pod, sensor, credentials or radio was used.
-
-## Research references
-
-All references below were read from the pinned local checkout because GitHub
-was inaccessible from this environment:
-
-- [Bench plan](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/BENCH_EXPERIMENTS.md)
-- [Keyed reply schemas](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/cgm-provisioning/reply-parsers.md)
-- [Enable and active-Pod batch](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/cgm-provisioning/g7-enable-sequence.md)
-- [Application batch framing](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/mode-switch/android-crosscheck.md#the-batch-actually-sent)
-- [Android signing selection](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/cgm-provisioning/signing-policy.md)
-- [iOS signing distinction](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/cgm-provisioning/ios-signing-policy.md)
-- [Readback contracts](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/pod-fault-e2/configuration-readback.md)
-- [Retained validation patch](https://github.com/manudrijvers/re-omnipod/blob/db92e426b97914ce1c80bdab45a74001a858840a/analysis/pod-fault-e2/incident-replay-and-validation.md)
+Run `Scripts/stamp-sources.py --check` to verify the bundled source provenance and
+`Scripts/verify-export.py <export-directory>` to independently check exports.
+Snapshots use fsync + atomic rename, 0600 files/0700 directories and a process
+lease. Send preparation, send-start, transport write ACK, raw reply and application
+validation are separate milestones. The current BLE packet sender has no command
+retransmission loop; reconnect handshakes do not replay an application SET.

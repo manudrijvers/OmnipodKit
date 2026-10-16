@@ -646,6 +646,10 @@ struct OmniSettingsView: View  {
 
             Section() {
                 if viewModel.podType.isO5 {
+                    NavigationLink(destination: O5PhysicalBenchView(open: viewModel.makePhysicalBenchConnection)) {
+                        Text("Removed Pod Experiment")
+                            .foregroundColor(Color.primary)
+                    }
                     NavigationLink(destination: O5BenchView()) {
                         Text("Pod Experiment Dry Run")
                             .foregroundColor(Color.primary)

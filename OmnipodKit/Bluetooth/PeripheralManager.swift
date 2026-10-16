@@ -338,6 +338,19 @@ extension PeripheralManager {
         }
     }
 
+    /// Called only on the serialized session queue for an explicit bench reconnect.
+    func disconnectForBench() throws {
+        guard peripheral.state != .disconnected else { return }
+        bluetoothManager?.disconnectOnDemand(peripheral)
+        let deadline = ProcessInfo.processInfo.systemUptime + 10
+        while peripheral.state != .disconnected {
+            guard ProcessInfo.processInfo.systemUptime < deadline else {
+                throw PodProtocolError.messageIOException("Bench disconnect timed out")
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+    }
+
     func reconnect(timeout: TimeInterval) throws {
         try runCommand(timeout: timeout) {
             addCondition(.connect)

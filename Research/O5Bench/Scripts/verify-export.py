@@ -15,7 +15,10 @@ for line in (root / 'SHA256SUMS').read_text().splitlines():
     assert hashlib.sha256((root / name).read_bytes()).hexdigest() == digest, name
 assert names == {p.name for p in root.iterdir()} - {'SHA256SUMS'}
 manifest = json.loads((root / 'manifest.json').read_text())
-assert manifest['synthetic'] is True and manifest['physicalWritesEnabled'] is False
+assert isinstance(manifest['physicalWritesEnabled'], bool)
+if manifest['synthetic']:
+    assert manifest['physicalWritesEnabled'] is False
+assert manifest['transport'] == ('fake-only' if manifest['synthetic'] else 'BLE')
 exchanges = [json.loads(line) for line in (root / 'exchanges.ndjson').read_text().splitlines()]
 events = [json.loads(line) for line in (root / 'events.ndjson').read_text().splitlines()]
 assert exchanges and events
@@ -24,6 +27,9 @@ if manifest['redacted']:
     for op in exchanges:
         for item in op['requests'] + op['replies']:
             assert item['applicationHex'] == 'REDACTED'
+        for record in op.get('wireRecords', []):
+            assert record['hex'] == 'REDACTED'
+        assert 'certificate SHA256' not in op['signingPolicy']
         if 'applicationBatchHex' in op:
             assert op['applicationBatchHex'] == 'REDACTED'
     assert all('note' not in e['fields'] for e in events)

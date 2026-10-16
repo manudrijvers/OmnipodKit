@@ -1,8 +1,14 @@
 import Foundation
 
-/// Deliberately concrete and offline: there is no BLE implementation, callback
-/// to a pump manager, live store, or public injectable transport in this build.
-final class FakeBenchTransport {
+/// Deterministic offline transport for the dry-run screen, CLI and tests.
+final class FakeBenchTransport: BenchTransport {
+    let physical = false
+    var activationProvenance: String { "synthetic fixture; no physical activation observed" }
+    func checkAccess() throws {}
+    func policy(for requests: [BenchRequest]) throws -> String { "simulation-only" }
+    func exchange(_ requests: [BenchRequest], capture: @escaping O5BenchWireCapture) throws -> [Data] {
+        try exchange(requests)
+    }
     var target: BenchTarget = .synthetic
     var firmware = "9.0.4"
     var bleVersion = "5.0.2"

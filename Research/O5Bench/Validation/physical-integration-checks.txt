@@ -1,0 +1,15 @@
+Physical runner source checks, 2026-10-16
+
+Portable Swift suite: 72 cases; 71 passed, 1 optional private incident replay skipped.
+See physical-runner-tests.log. Physical branches use a deterministic radio double.
+Synthetic CLI smoke/export: see physical-integration-smoke.log and Samples/redacted-session.
+Independent Python checksum/redaction verifier: passed.
+
+Swift 6.2.4 syntax check targeting arm64-apple-ios16.0: passed for changed
+BleMessageTransport, BlePodComms, PeripheralManager, OmniPumpManager,
+PodCommsSession, OmniSettingsViewModel, OmniSettingsView and O5PhysicalBenchView.
+Syntax parsing does not typecheck Apple-framework imports or prove an iOS build.
+
+An unsigned simulator build is configured in Trio's o5_bench_build.yml workflow.
+See the workflow result for the exact pushed Trio commit; it is not a device test.
+No physical Pod acceptance or installed-phone certificate validation was performed.

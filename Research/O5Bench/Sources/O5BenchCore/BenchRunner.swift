@@ -1,11 +1,10 @@
 import Foundation
 
-/// One runner serializes all action/capture work. Physical access is intentionally
-/// unavailable until batch framing and provisioned policy selection are reviewed.
+/// Serializes actions and capture for either a simulated or an isolated live transport.
 final class BenchRunner {
     private(set) var session: BenchSession
     let store: BenchStore
-    let transport: FakeBenchTransport
+    let transport: BenchTransport
     let clock: BenchClock
     private let mutex = NSRecursiveLock()
     private var busy = false
@@ -14,12 +13,17 @@ final class BenchRunner {
     /// Test-only process-termination injection: durable pending state is left intact.
     var checkpoint: ((String) throws -> Void)?
 
-    init(store: BenchStore, transport: FakeBenchTransport, revisions: [String: String] = [:]) throws {
+    init(store: BenchStore, transport: BenchTransport, revisions: [String: String] = [:]) throws {
         self.store = store; self.transport = transport; clock = transport.clock
         if let saved = try store.load() {
             guard saved.schema == 1 else { throw BenchError.logging }
             session = saved; clock.elapsed = saved.virtualElapsed
-            transport.control = saved.fakeControl; transport.identity = saved.fakeIdentity
+            guard (saved.physical == true) == transport.physical, saved.target == transport.target else { throw BenchError.target }
+            if let fake = transport as? FakeBenchTransport { fake.control = saved.fakeControl; fake.identity = saved.fakeIdentity }
+            if transport.physical {
+                session.armed = false
+                session.locks.append("physical-session-reopened; diagnostic readback and export only")
+            }
             if saved.activeStep != nil || saved.operations.contains(where: { $0.outcome == "pending" }) {
                 session.locks.append("interrupted-session; no automatic replay or advancement")
                 for index in session.steps.indices where session.steps[index].finished == nil {
@@ -30,16 +34,17 @@ final class BenchRunner {
             }
         } else {
             session = BenchSession(id: UUID().uuidString, target: transport.target, revisions: revisions,
-                activationProvenance: "synthetic fixture; no physical activation observed", clockID: clock.id)
+                activationProvenance: transport.activationProvenance, clockID: clock.id)
+            session.physical = transport.physical
             try persist()
         }
     }
 
-    func requirePhysicalAccess() throws { throw BenchError.physicalDisabled }
+    func requirePhysicalAccess() throws { guard transport.physical else { throw BenchError.physicalDisabled }; try transport.checkAccess() }
 
     private func persist() throws {
         session.virtualElapsed = clock.elapsed
-        session.fakeControl = transport.control; session.fakeIdentity = transport.identity
+        if let fake = transport as? FakeBenchTransport { session.fakeControl = fake.control; session.fakeIdentity = fake.identity }
         do { try store.save(session) }
         catch {
             captureFailed = true
@@ -57,7 +62,7 @@ final class BenchRunner {
         guard !busy else { throw BenchError.busy }
         guard offBodyConfirmed, session.locks.isEmpty, !captureFailed else { throw BenchError.blocked }
         session.offBodyConfirmed = true; session.armed = true
-        try event("armed", ["scope": "synthetic-only; Pod remains the sole active Pod until normal replacement"])
+        try event("armed", ["scope": transport.physical ? "physical removed Pod; exclusive access until normal replacement" : "synthetic-only"])
     }
 
     func recordFeed(phoneOK: Bool, watchOK: Bool, note: String = "") throws {
@@ -67,10 +72,16 @@ final class BenchRunner {
         try event("external-feed-observation", ["phoneOK": String(phoneOK), "watchOK": String(watchOK), "note": note])
     }
 
-    func markAlarm(note: String) throws {
+    func stop(reason: String, observedAt: Date = Date()) throws {
+        mutex.lock(); defer { mutex.unlock() }
+        session.locks.append("experiment-interrupted")
+        try event("experiment-interrupted", ["note": reason, "operatorObservedUTC": ISO8601DateFormatter().string(from: observedAt)])
+    }
+
+    func markAlarm(note: String, observedAt: Date = Date()) throws {
         mutex.lock(); defer { mutex.unlock() }
         session.locks.append("operator-observed-alarm")
-        try event("operator-audible-alarm", ["note": note, "softwareFaultDetection": "independent"])
+        try event("operator-audible-alarm", ["note": note, "softwareFaultDetection": "independent", "operatorObservedUTC": ISO8601DateFormatter().string(from: observedAt)])
     }
 
     func export(to url: URL, redacted: Bool = true) throws {
@@ -97,14 +108,14 @@ final class BenchRunner {
                 _ = try readSnapshot()
                 try export(to: baselineExport)
                 try event("baseline-export-verified")
-                _ = try observe(seconds: 600, requireEnable: false)
+                let observation = try observe(seconds: 600, requireEnable: false)
                 session.baselineComplete = true
-                if snapshot?.interface.control == 0 {
+                if observation.enabledThroughout {
                     session.enableVerified = true
                     try event("enable-not-exercised", ["reason": "already enabled throughout baseline readback at completion"])
                 }
             case .reconnect:
-                try checkTarget(); transport.reconnect()
+                try checkTarget(); try transport.reconnect()
                 try event("reconnect", ["programmingRequests": "0"])
                 _ = try observe(seconds: 600, requireEnable: session.enableVerified)
                 session.reconnectComplete = true
@@ -132,6 +143,7 @@ final class BenchRunner {
                 let current = try readSnapshot()
                 try mutationGate()
                 if current.interface.control == 0 {
+                    guard session.enableVerified else { throw BenchError.baseline }
                     session.enableVerified = true
                     try event("enable-not-exercised", ["reason": "already enabled"])
                 } else {
@@ -168,11 +180,11 @@ final class BenchRunner {
                 let observation = try observe(seconds: 1800, requireEnable: true)
                 session.receptionObserved = observation.sustained
                 try event("reception-result", ["distinctFreshSensorSamples": String(observation.count),
-                    "sustainedWithinWindow": String(observation.sustained), "scope": "synthetic observation only"])
+                    "sustainedWithinWindow": String(observation.sustained), "scope": transport.physical ? "physical Pod observation" : "synthetic observation only"])
             case .reconnectReception:
                 guard session.configurationConfirmed, session.receptionObserved else { throw BenchError.baseline }
                 let previous = session.lastSensorTimestamp
-                try checkTarget(); transport.reconnect()
+                try checkTarget(); try transport.reconnect()
                 try event("reconnect-after-reception", ["programmingRequests": "0"])
                 let count = try observe(seconds: 600, requireEnable: true)
                 guard count.count >= 1, count.sustained, let latest = session.lastSensorTimestamp, latest != previous else { throw BenchError.reply }
@@ -186,7 +198,7 @@ final class BenchRunner {
             // Leave the interrupted step pending for a simulated process death.
             if error as? BenchError == .interrupted { throw error }
             session.events.append(BenchEvent(time: clock.stamp, kind: "action-validation-error",
-                fields: ["action": action.rawValue, "reason": error.localizedDescription]))
+                fields: ["action": action.rawValue, "reason": transport.physical ? "action failed; inspect private wire capture and lock reasons" : error.localizedDescription]))
             session.steps[stepIndex].result = "failed"
             session.steps[stepIndex].finished = clock.stamp
             session.activeStep = nil
@@ -197,6 +209,7 @@ final class BenchRunner {
     }
 
     private func checkTarget() throws {
+        try transport.checkAccess()
         guard transport.target == session.target else { throw BenchError.target }
     }
 
@@ -227,7 +240,7 @@ final class BenchRunner {
         let op = BenchOperation(id: UUID().uuidString, experimentID: session.id,
             actionID: session.activeStep ?? "diagnostic", target: session.target, requests: requests,
             group: group, applicationBatch: mutation && requests.count == 2 ? try BenchBatchCodec.request(requests) : nil,
-            expected: expected, signingPolicy: "simulation-only; physical policy unresolved", prepared: clock.stamp)
+            expected: expected, signingPolicy: try transport.policy(for: requests), prepared: clock.stamp)
         session.operations.append(op); let i = session.operations.count - 1
         try persist(); try checkpoint?("prepared")
         try checkTarget()
@@ -248,7 +261,15 @@ final class BenchRunner {
                   clock.elapsed >= snapshot.received, clock.elapsed - snapshot.received <= 90 else { throw BenchError.blocked }
         }
         let replies: [Data]
-        do { replies = try transport.exchange(requests) }
+        do {
+            // The adapter transfers serial ownership to its BLE queue while this
+            // worker waits. Capture completes durably before it returns to the sender.
+            replies = try transport.exchange(requests) { phase, bytes in
+                if self.session.operations[i].wireRecords == nil { self.session.operations[i].wireRecords = [] }
+                self.session.operations[i].wireRecords?.append(BenchWireRecord(phase: phase, bytes: bytes, time: self.clock.stamp))
+                try self.persist()
+            }
+        }
         catch {
             session.locks.append(mutation ? "mutation-outcome-unknown" : "diagnostic-interrupted")
             try? persist()
@@ -333,16 +354,18 @@ final class BenchRunner {
         return value
     }
 
-    private func observe(seconds: Double, requireEnable: Bool) throws -> (count: Int, sustained: Bool) {
+    private func observe(seconds: Double, requireEnable: Bool) throws -> (count: Int, sustained: Bool, enabledThroughout: Bool) {
         let start = clock.elapsed
         let previousSample = session.lastSensorTimestamp
         var distinct = Set<Int32>()
         var lastNewSampleAt: Double?
         var firstNewSampleAt: Double?
+        var enabledThroughout = true
         var continuity = true
         var freshAtEnd = false
         repeat {
             let value = try readSnapshot()
+            enabledThroughout = enabledThroughout && value.interface.control == 0
             if requireEnable, value.interface.control != 0 { throw BenchError.reply }
             if let expected = session.identity, !expected.matches(value.identity) { throw BenchError.identity }
             if value.status.hasRecentG7Reading(maxAge: 360), let g7 = value.status.g7,
@@ -359,13 +382,19 @@ final class BenchRunner {
             guard session.phoneFeedOK, session.watchFeedOK else { throw BenchError.blocked }
             try checkpoint?("observation-sample")
             if clock.elapsed - start >= seconds { break }
-            clock.advance(60) // Explicit simulated cadence; no tight physical polling.
+            if transport.physical {
+                let until = clock.elapsed + 60
+                while clock.elapsed < until {
+                    try transport.checkAccess()
+                    clock.advance(min(1, until - clock.elapsed))
+                }
+            } else { clock.advance(60) }
         } while true
         try event("observation-window", ["plannedSeconds": String(seconds), "elapsedSeconds": String(clock.elapsed - start),
-            "cadenceSeconds": "60", "clock": "virtual", "distinctFreshSensorSamples": String(distinct.count)])
+            "cadenceSeconds": "60", "clock": transport.physical ? "process-uptime" : "virtual", "distinctFreshSensorSamples": String(distinct.count)])
         let sustained = distinct.count >= 2 && continuity && freshAtEnd
             && lastNewSampleAt.map { clock.elapsed - $0 <= 360 } == true
             && firstNewSampleAt.map { $0 - start <= 360 } == true
-        return (distinct.count, sustained)
+        return (distinct.count, sustained, enabledThroughout)
     }
 }
