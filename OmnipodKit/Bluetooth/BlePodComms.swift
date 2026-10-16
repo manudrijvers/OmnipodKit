@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import O5BenchCore
 import CoreBluetooth
 import LoopKit
 import os.log
@@ -825,5 +826,91 @@ extension BlePodComms: PodCommsSessionDelegate {
 
         podCommsSession.assertOnSessionQueue()
         podState = state
+    }
+}
+
+// MARK: - One-active-Pod physical research adapter
+extension BlePodComms {
+    /// Worker-thread bridge. The session block and all capture callbacks finish
+    /// before ownership returns to the runner. No timed-out block can send later.
+    private func benchSync<T>(_ body: @escaping (PodCommsSession) throws -> T) throws -> T {
+        precondition(!Thread.isMainThread)
+        let completed = DispatchSemaphore(value: 0)
+        var outcome: Result<T, Error>!
+        bleRunSession(withName: "Removed Pod experiment") { result in
+            switch result {
+            case .success(let session): outcome = Result { try body(session) }
+            case .failure(let error): outcome = .failure(error)
+            }
+            completed.signal()
+        }
+        completed.wait()
+        return try outcome.get()
+    }
+
+    private func benchTarget() throws -> BenchTarget {
+        guard let state = podState, let ble = state.bleIdentifier, let ltk = state.ltk, !ltk.isEmpty else {
+            throw PodCommsError.noPodPaired
+        }
+        let context = ltk + (state.signingKey ?? Data()) + Data("\(myId):\(state.address):\(state.lotNo):\(state.lotSeq):\(ble)".utf8)
+        return BenchTarget(lot: String(state.lotNo), sequence: String(state.lotSeq), bleAssociation: ble,
+                           secureContextReference: O5BenchJournal.contextReference(context))
+    }
+
+    func makePhysicalBenchConnection(validate: @escaping () throws -> Void,
+                                     activate: @escaping () throws -> Void,
+                                     release: @escaping () -> Void) throws -> O5PhysicalBenchConnection {
+        let prepared = try benchSync { _ -> (BenchTarget, String, String, String, O5BenchSigningPolicy, String) in
+            try validate()
+            guard let state = self.podState, state.podType.isO5, state.isActive,
+                  state.setupProgress == .completed, state.unacknowledgedCommand == nil,
+                  !self.needsSessionEstablishment, state.bleMessageTransportState.ck?.isEmpty == false else {
+                throw PodCommsError.diagnosticMessage(str: "An active, fully set up Pod with no pending delivery command is required.")
+            }
+            let registration = try O5CertificateStore(controllerId: self.myId).registration
+            guard let certificate = registration.tlsCertificate, state.signingKey == registration.privateKey else {
+                throw PodCommsError.noCertificateFound
+            }
+            let policy = try O5BenchSigningPolicy(certificate: certificate)
+            let target = try self.benchTarget()
+            // Stable journal identity preserves interrupted-session history without locking therapy.
+            let permit = try O5BenchJournal.sessionID(controller: self.myId, target: target)
+            let provenance = "Existing Trio activation; setup completed; activatedAt=\(state.activatedAt.map { ISO8601DateFormatter().string(from: $0) } ?? "unknown"); no official setup state asserted"
+            return (target, state.firmwareVersion, state.iFirmwareVersion, permit, policy, provenance)
+        }
+        let (target, firmware, bleVersion, permit, policy, provenance) = prepared
+        let controller = myId
+        weak var weakConnection: O5PhysicalBenchConnection?
+        let authorize = {
+            guard let connection = weakConnection else { throw PodCommsError.noPodPaired }
+            try connection.validateAccess()
+            guard self.myId == controller, !self.needsSessionEstablishment,
+                  self.manager?.peripheral.identifier.uuidString == target.bleAssociation,
+                  self.podState?.bleMessageTransportState.ck?.isEmpty == false,
+                  try self.benchTarget() == target else {
+                throw PodCommsError.diagnosticMessage(str: "The active Pod or its secure context changed.")
+            }
+        }
+        let connection = O5PhysicalBenchConnection(sessionID: permit, target: target, firmware: firmware,
+            bleVersion: bleVersion, activationProvenance: provenance,
+            validate: validate, activate: activate, release: release,
+            selectPolicy: { _ in "AID " + policy.description + "; standalone legacy reads use existing Trio mode 1" },
+            exchange: { requests, capture in
+                try self.benchSync { session in
+                    try authorize()
+                    return try session.benchExchange(requests, policy: policy, authorize: authorize, capture: capture)
+                }
+            }, reconnect: {
+                // Disconnect explicitly; the next queued session performs HELLO /
+                // EAP-AKA. The pump manager skips background maintenance during the experiment.
+                try self.benchSync { _ in
+                    try authorize()
+                    guard let manager = self.manager else { throw PodCommsError.podNotConnected }
+                    try manager.disconnectForBench()
+                }
+                try self.benchSync { _ in try authorize() }
+            })
+        weakConnection = connection
+        return connection
     }
 }

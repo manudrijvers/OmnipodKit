@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import O5BenchCore
 import CryptoKit
 import os.log
 
@@ -613,4 +614,120 @@ private func requiresType4Signing(for blocks: [MessageBlock]) -> Bool {
     ]
 
     return blocks.contains { o5SignedCommandTypes.contains($0.blockType) }
+}
+
+// Experiment entry points only. Normal therapy send methods above are unchanged.
+extension BlePodMessageTransport {
+    func sendBenchAidCommand(_ wrappedPayload: Data, mode: O5BenchSigningPolicy.Mode,
+                             authorize: () throws -> Void, capture: O5BenchWireCapture) throws -> Data {
+        try authorize()
+        let secondaryKey: P256.Signing.PrivateKey?
+        if mode == .secondarySigned {
+            guard let signingKey else { throw PodCommsError.noCertificateFound }
+            secondaryKey = try P256.Signing.PrivateKey(rawRepresentation: signingKey)
+        } else { secondaryKey = nil }
+        guard let enDecrypt = self.enDecrypt else {
+            throw PodCommsError.podNotConnected
+        }
+
+        guard manager.peripheral.state == .connected else {
+            throw PodCommsError.podNotConnected
+        }
+
+        incrementMsgSeq()
+
+        let msg = MessagePacket(
+            type: secondaryKey == nil ? MessageType.ENCRYPTED : MessageType.ENCRYPTED_SIGNED,
+            source: self.myId,
+            destination: self.podId,
+            payload: wrappedPayload,
+            sequenceNumber: UInt8(msgSeq),
+            eqos: 1
+        )
+
+        incrementNonceSeq()
+        var encrypted = try enDecrypt.encrypt(msg, nonceSeq)
+        if let secondaryKey {
+            let signingInput = encrypted.asData(forEncryption: false).prefix(16) + encrypted.payload
+            encrypted.signatureData = Data(try secondaryKey.signature(for: signingInput).rawRepresentation)
+        }
+
+        log.default("O5 AID Send (%{public}d bytes wrapped): %{public}@",
+                     wrappedPayload.count, wrappedPayload.hexadecimalString)
+        messageLogger?.didSend(wrappedPayload)
+
+        try authorize()
+        try capture("aid-send-mode-\(mode.rawValue)", wrappedPayload)
+        let writeResult = manager.sendMessagePacket(encrypted)
+        switch writeResult {
+        case .sentWithAcknowledgment:
+            try capture("transport-write-ack", Data())
+            break
+        case .sentWithError(let error):
+            throw PodCommsError.commsError(error: error)
+        case .unsentWithError(let error):
+            throw PodCommsError.commsError(error: error)
+        }
+
+        // Read the response
+        let readResponse = try manager.readMessagePacket()
+        guard let readMessage = readResponse else {
+            throw PodProtocolError.messageIOException("Could not read AID command response")
+        }
+
+        incrementNonceSeq()
+        let decrypted = try enDecrypt.decrypt(readMessage, nonceSeq)
+        try capture("raw-response", decrypted.payload)
+
+        // Send ACK
+        incrementMsgSeq()
+        incrementNonceSeq()
+        let ack = try getAck(response: decrypted)
+        let ackResult = manager.sendMessagePacket(ack)
+        guard case .sentWithAcknowledgment = ackResult else {
+            throw PodProtocolError.messageIOException("Could not send ACK for AID command response")
+        }
+
+        return decrypted.payload
+    }
+
+
+    func sendBenchStatus(type: PodInfoResponseSubType, authorize: () throws -> Void,
+                         capture: O5BenchWireCapture) throws -> Message {
+        try authorize()
+        let command = Message(address: podId, messageBlocks: [GetStatusCommand(podInfoType: type)],
+                              sequenceNum: messageNumber)
+        let payload = StringLengthPrefixEncoding.formatKeys(
+            keys: [COMMAND_PREFIX, COMMAND_SUFFIX], payloads: [command.encoded(), Data()])
+        incrementMessageNumber()
+        let envelope = try sendBenchAidCommand(payload, mode: .encrypted, authorize: authorize, capture: capture)
+        let bytes: Data
+        do { bytes = try StringLengthPrefixEncoding.parseKeys([RESPONSE_PREFIX], envelope)[0] }
+        catch { bytes = try StringLengthPrefixEncoding.parseKeys([O5_RESPONSE_PREFIX], envelope)[0] }
+        let response = try Message(encodedData: bytes, checkCRC: true)
+        guard response.address == podId, response.sequenceNum == messageNumber else {
+            throw PodCommsError.invalidData
+        }
+        incrementMessageNumber()
+        return response
+    }
+
+
+    func sendBenchStatusBatch(mode: O5BenchSigningPolicy.Mode,
+                              authorize: () throws -> Void, capture: O5BenchWireCapture) throws -> [Data] {
+        try authorize()
+        let command = Message(address: podId,
+            messageBlocks: [GetStatusCommand(podInfoType: .noSeqStatus)], sequenceNum: messageNumber)
+        let payload = try O5BenchReadBatchCodec.request(legacyMessage: command.encoded())
+        incrementMessageNumber()
+        let envelope = try sendBenchAidCommand(payload, mode: mode, authorize: authorize, capture: capture)
+        let parts = try O5BenchReadBatchCodec.replies(envelope)
+        let legacy = try Message(encodedData: parts.legacyMessage)
+        guard legacy.address == podId, legacy.sequenceNum == messageNumber,
+              legacy.messageBlocks.count == 1, let status = legacy.messageBlocks.first as? StatusResponse else {
+            throw PodCommsError.invalidData
+        }
+        incrementMessageNumber()
+        return [parts.aid, status.data]
+    }
 }

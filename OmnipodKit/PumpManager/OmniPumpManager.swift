@@ -8,6 +8,7 @@
 //
 
 import HealthKit
+import O5BenchCore
 import LoopKit
 import RileyLinkKit
 import RileyLinkBLEKit
@@ -185,6 +186,9 @@ public class OmniPumpManager: RileyLinkPumpManager {
     private let podStateObservers = WeakSynchronizedSet<PodStateObserver>()
 
     private let pumpDelegate = WeakSynchronizedDelegate<PumpManagerDelegate>()
+
+    // In-memory pause of automatic maintenance, scoped to an experiment session.
+    private let benchBackgroundPause = O5BenchBackgroundPause()
 
     let log = OSLog(category: "OmniPumpManager")
 
@@ -715,6 +719,7 @@ extension OmniPumpManager {
     /// Handles reconfiguring the pod for audible alerts and getting all the silencePod
     /// related variables updated when the silencePodEnd time has been reached.
     private func handleSilencePodEnd(session: PodCommsSession) {
+        guard !benchBackgroundPause.isActive else { return }
         if let silencePodEnd = state.silencePodEnd, Date() >= silencePodEnd {
             log.default("@@@ handleSilencePodEnd: end time %{public}@ reached, disabling silence mode", String(describing: silencePodEnd))
 
@@ -1707,6 +1712,8 @@ extension OmniPumpManager {
     // and other associated actions that need to be regularly performed.
     // Returns the getStatus() StatusResponse when the command isn't skipped.
     fileprivate func handlePodUpdatesAsNeeded(session: PodCommsSession, canOptimize: Bool) -> StatusResponse? {
+        // Recheck on the session queue, including work queued before experiment start.
+        guard !benchBackgroundPause.isActive else { return nil }
 
         // First see if a timed silence pod mode has ended
         handleSilencePodEnd(session: session)
@@ -2161,6 +2168,47 @@ extension OmniPumpManager {
                         continuation.resume(throwing: error)
                     }
                 } catch let error {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    // MARK: - Dexcom G7 connected directly to an O5 pod (proof of concept)
+
+    /// Tells the active O5 pod to connect directly to the given Dexcom G7 sensor:
+    /// enables the pod's CGM interface for a G7 (SE4.2), then sends the sensor identity (SE4.1).
+    func connectDexcomG7(pairingCode: String, serialNumber: String) async throws -> String {
+        throw PodCommsError.diagnosticMessage(str: "Use Removed Pod Experiment in Pod settings to provision a G7 during an off-body experiment.")
+    }
+
+    /// Reads the active O5 pod's CGM interface (G4.2), sensor info (G4.1) and AID status (G3.12).
+    func readDexcomG7Status() async throws -> String {
+        return try await runO5AidSession(withName: "Read Dexcom G7 Status") { session in
+            let interface = try session.sendO5AidCommand(O5AidCommands.CgmInterfaceCommand.getPayload())
+            var output = "G4.2: \(interface.hexadecimalString)\n"
+            let sensorInfo = try session.sendO5AidCommand(O5AidCommands.G7SensorInfoCommand.getPayload())
+            output += "G4.1: \(sensorInfo.hexadecimalString)\n"
+            let status = try session.sendO5AidCommand(O5AidCommands.UnifiedAidPodStatusCommand.payload())
+            output += "G3.12: \(status.hexadecimalString)\n\n"
+            output += O5AidCgmStatus(status)?.description ?? "Unable to decode G3.12"
+            return output
+        }
+    }
+
+    /// Runs `block` in a pod session on an active pod; the first failing command ends it and is thrown.
+    /// The raw AID responses are always logged by BlePodMessageTransport.sendO5AidCommand.
+    private func runO5AidSession(withName name: String, _ block: @escaping (PodCommsSession) throws -> String) async throws -> String {
+        guard self.hasActivePod else {
+            throw OmniPumpManagerError.noPodPaired
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.runSession(withName: name) { (result) in
+                switch result {
+                case .success(let session):
+                    continuation.resume(with: Result { try block(session) })
+                case .failure(let error):
                     continuation.resume(throwing: error)
                 }
             }
@@ -2644,6 +2692,7 @@ extension OmniPumpManager: PumpManager {
     }
 
     public func ensureCurrentPumpData(completion: ((Date?) -> Void)?) {
+        guard !benchBackgroundPause.isActive else { completion?(self.lastSync); return }
         let shouldFetchStatus = setStateWithResult { (state) -> Bool? in
             guard state.hasActivePod else {
                 return nil // No active pod
@@ -3257,10 +3306,12 @@ extension OmniPumpManager: PumpManager {
     }
 
     private func silenceAcknowledgedAlerts() {
+        guard !benchBackgroundPause.isActive else { return }
         // Only attempt to clear one per cycle (more than one should be rare)
         if let alert = state.alertsWithPendingAcknowledgment.first {
             if let slot = alert.triggeringSlot {
                 self.runSession(withName: "Silence already acknowledged alert") { (result) in
+                    guard !self.benchBackgroundPause.isActive else { return }
                     switch result {
                     case .success(let session):
                         // Another queued session may have cleared it already
@@ -3372,6 +3423,7 @@ extension OmniPumpManager: PodCommsDelegate {
 
     // Not used for Eros pods
     func podCommsDidEstablishSession(_ podComms: PodComms) {
+        guard !benchBackgroundPause.isActive else { return }
 
         guard podComms.podState?.isSetupComplete == true else {
             self.log.debug("### Skipping post-connect processing with incomplete setup")
@@ -3520,6 +3572,28 @@ extension OmniPumpManager {
         if !found {
             log.error("@@@ acknowledge alert %{public}@ not found!", alertIdentifier)
             completion(nil)
+        }
+    }
+}
+
+extension OmniPumpManager {
+    func makePhysicalBenchConnection() throws -> O5PhysicalBenchConnection {
+        guard let comms = podComms as? BlePodComms, podType.isO5 else { throw OmniPumpManagerError.noPodPaired }
+        let token = UUID()
+        let pause = benchBackgroundPause
+        let validate = { [weak self] in
+            guard let self, self.pumpDelegate.delegate?.automaticDosingEnabled == false else {
+                throw PodCommsError.diagnosticMessage(str: "Turn automatic dosing off in Trio before running the experiment, and leave it off until this Pod is replaced.")
+            }
+        }
+        let activate = { try validate(); try pause.begin(token) }
+        try activate()
+        do {
+            return try comms.makePhysicalBenchConnection(validate: validate, activate: activate,
+                                                        release: { pause.end(token) })
+        } catch {
+            pause.end(token)
+            throw error
         }
     }
 }

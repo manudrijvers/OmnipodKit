@@ -7,6 +7,7 @@
 //  Copyright © 2021 LoopKit Authors. All rights reserved.
 //
 
+import O5BenchCore
 import SwiftUI
 import LoopKit
 import LoopKitUI
@@ -706,5 +707,11 @@ extension OmniPumpManager {
 extension OmniPumpManager: DiagnosticCommands {
     func pumpManagerDetails() -> String {
         return debugDescription
+    }
+}
+
+extension OmniSettingsViewModel {
+    func makePhysicalBenchConnection() throws -> O5PhysicalBenchConnection {
+        try pumpManager.makePhysicalBenchConnection()
     }
 }

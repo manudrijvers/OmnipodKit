@@ -1,0 +1,29 @@
+{
+  "repository": "https://github.com/manudrijvers/OmnipodKit",
+  "base_commit": "363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e",
+  "review_date": "2026-10-14",
+  "patch_sha256": "cd62705aa8f142d64bb81a7e13829bb11055cd7b138859978e07783e2fcbda98",
+  "patched_files_sha256": {
+    "O5_AID_OFFLINE_VALIDATION.md": "b1e5b2f2feb4a95a475792bf6b4330ef5c95446b4085b2f044d4c5d6f535f242",
+    "OmniTests/O5/O5AidIncidentTests.swift": "77dbf786ead329e47da79e9ac26643505872ddac93f7ddc71405156bd363b076",
+    "OmniTests/O5/O5AidResponsesTests.swift": "9b587e8a2ef2807f8c1f852eac8ed434d806a6efc8aab6b053d1dbc15321543e",
+    "OmnipodKit/Bluetooth/BlePodComms.swift": "8446b057dc89d965241a91da818a2cbcaab7ed1c0305eaf7eeae31a17c526084",
+    "OmnipodKit/Bluetooth/O5AidCommands.swift": "0b34f447a79888a6e578e2aea38f1de3de90723da19c43c626e96c52b30af9b2",
+    "OmnipodKit/Bluetooth/O5AidResponses.swift": "dc1e351b07a23eaf10f4e0519275ccb2828da180a82709296323db82a8220b63",
+    "OmnipodKit/PumpManager/OmniPumpManager.swift": "001f22d4bb9ea569653ce0481fdd611df0b76a162d649e27f70ad2be866fa125",
+    "Scripts/test-o5-aid-offline.sh": "00ccb95b1fe5d7cc4badf684cc6c46b492f527f1f0c50ab5a2866e7b3e2bf4ca"
+  },
+  "validation": {
+    "patch_applies_to_clean_base": true,
+    "patched_files_match_tested_checkout": true,
+    "swift_version": "6.2.4",
+    "docker_image": "swift:6.2",
+    "docker_image_digest": "sha256:eccc7a97f9b9881d9659e2e788081fd7675f86d39793b51200bfb178398b3784",
+    "xctest_count": 33,
+    "xctest_failures": 0,
+    "original_incident_replay_included": true,
+    "integration_files_syntax_parsed": true,
+    "full_ios_build_performed": false,
+    "pod_or_radio_access": false
+  }
+}
