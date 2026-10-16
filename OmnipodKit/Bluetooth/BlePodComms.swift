@@ -52,9 +52,6 @@ class BlePodComms: PodComms {
     }
 
     override func forgetPod() {
-        // Explicit normal discard/deactivation ends this controller's isolation.
-        // If deletion fails, retain the lock rather than silently enabling writes.
-        if podType.isO5 { try? O5BenchInterlock.forget(controller: myId) }
         bluetoothManager.setUuidPdmId(nil)
         if let manager = manager {
             log.default("Removing %{public}@ from auto-connect ids", manager.peripheral)
@@ -853,11 +850,14 @@ extension BlePodComms {
         }
         let context = ltk + (state.signingKey ?? Data()) + Data("\(myId):\(state.address):\(state.lotNo):\(state.lotSeq):\(ble)".utf8)
         return BenchTarget(lot: String(state.lotNo), sequence: String(state.lotSeq), bleAssociation: ble,
-                           secureContextReference: O5BenchInterlock.contextReference(context))
+                           secureContextReference: O5BenchJournal.contextReference(context))
     }
 
-    func makePhysicalBenchConnection() throws -> O5PhysicalBenchConnection {
+    func makePhysicalBenchConnection(validate: @escaping () throws -> Void,
+                                     activate: @escaping () throws -> Void,
+                                     release: @escaping () -> Void) throws -> O5PhysicalBenchConnection {
         let prepared = try benchSync { _ -> (BenchTarget, String, String, String, O5BenchSigningPolicy, String) in
+            try validate()
             guard let state = self.podState, state.podType.isO5, state.isActive,
                   state.setupProgress == .completed, state.unacknowledgedCommand == nil,
                   !self.needsSessionEstablishment, state.bleMessageTransportState.ck?.isEmpty == false else {
@@ -869,8 +869,8 @@ extension BlePodComms {
             }
             let policy = try O5BenchSigningPolicy(certificate: certificate)
             let target = try self.benchTarget()
-            // This runs on the serialized Pod queue, after earlier commands finish.
-            let permit = try O5BenchInterlock.acquire(controller: self.myId, target: target)
+            // Stable journal identity preserves interrupted-session history without locking therapy.
+            let permit = try O5BenchJournal.sessionID(controller: self.myId, target: target)
             let provenance = "Existing Trio activation; setup completed; activatedAt=\(state.activatedAt.map { ISO8601DateFormatter().string(from: $0) } ?? "unknown"); no official setup state asserted"
             return (target, state.firmwareVersion, state.iFirmwareVersion, permit, policy, provenance)
         }
@@ -889,7 +889,7 @@ extension BlePodComms {
         }
         let connection = O5PhysicalBenchConnection(sessionID: permit, target: target, firmware: firmware,
             bleVersion: bleVersion, activationProvenance: provenance,
-            validate: { try O5BenchInterlock.check(controller: controller, permit: permit, target: target) },
+            validate: validate, activate: activate, release: release,
             selectPolicy: { _ in "AID " + policy.description + "; standalone legacy reads use existing Trio mode 1" },
             exchange: { requests, capture in
                 try self.benchSync { session in
@@ -898,7 +898,7 @@ extension BlePodComms {
                 }
             }, reconnect: {
                 // Disconnect explicitly; the next queued session performs HELLO /
-                // EAP-AKA only. The send interlock blocks post-connect app writers.
+                // EAP-AKA. The pump manager skips background maintenance during the experiment.
                 try self.benchSync { _ in
                     try authorize()
                     guard let manager = self.manager else { throw PodCommsError.podNotConnected }

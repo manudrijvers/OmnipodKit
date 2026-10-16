@@ -6,17 +6,20 @@ and replace it normally. It uses the existing controller identity, LTK, BLE
 association and sequence state. There is no second active Pod or controller handoff.
 
 **Implementation status:** a real BLE adapter and screen are implemented. The
-portable tests and iOS-source syntax checks run on Linux; a full Xcode build and
-physical Pod acceptance have not been performed. This is experimental source,
-not a verified installable iOS build.
+portable tests and iOS-source syntax checks run on Linux. Full simulator builds
+run in Trio's `O5 experiment simulator build` GitHub Actions workflow; check the
+result for the exact source revision. Physical Pod acceptance has not been tested.
 
 ## In the app
 
 Open Omnipod 5 settings → **Removed Pod Experiment**. Confirm that the Pod has
 been removed and no longer supplies therapy, then start the session. Starting
-reserves the existing active Pod and automatically opens protected local capture.
-It does not suspend or change its existing delivery program. Ordinary app
-commands are blocked while this Pod is reserved, including background commands.
+requires Trio automatic dosing to be off and automatically opens protected local
+capture. Leave automatic dosing off until this Pod is replaced; the experiment
+checks the setting again before its commands. Starting does not suspend or change
+the existing delivery program. Only automatic status polling, post-connect status
+processing, timed silence restoration and pending alert acknowledgments pause.
+Manual commands and the ordinary send paths remain available.
 
 Run the buttons separately, reviewing each result:
 
@@ -32,8 +35,11 @@ Keep the app and experiment screen foregrounded. The screen prevents idle sleep.
 Leaving the foreground, stopping, an alarm, a feed interruption, faults, malformed
 replies, missing capture or an uncertain command stops the mutation chain. Reopened
 physical sessions permit diagnostics and export only; they never replay a SET.
-The isolation lock persists until normal discard/replacement. A new session cannot
-silently erase the old session or its uncertainty.
+The background-maintenance pause ends when the experiment is stopped, leaves the
+foreground, closes, or its connection is released. It is in memory only: an app
+restart resumes normal background processing. A stable journal identity preserves
+interrupted-session history for that Pod; reopening cannot silently erase its
+uncertainty. Diagnostic readback reacquires the pause and checks automatic dosing.
 
 Logging needs no special setting. **Export redacted session** omits raw bytes,
 Pod/sensor identifiers, the certificate fingerprint and operator notes. **Export
@@ -48,18 +54,23 @@ They use virtual time and synthetic identities; their exports say so.
 
 ## Transport and isolation
 
-`BlePodComms.makePhysicalBenchConnection` acquires a durable interlock on the
-serialized Pod session queue after earlier commands finish. Its permit binds lot,
-sequence, BLE identifier and a one-way context reference incorporating controller,
-Pod address, LTK and the active signing key. It rechecks the active context at the
-application send boundary. Ordinary legacy, raw and AID transport entry points
-check the lock too, including already-queued sessions.
+`BlePodComms.makePhysicalBenchConnection` uses the same BLE connection and serialized
+session queue as ordinary commands. Earlier sessions finish before preparation.
+The adapter binds lot, sequence, BLE identifier and a one-way context reference
+incorporating controller, Pod address, LTK and the active signing key. It rechecks
+that context at the experiment send boundary.
 
-The normal deactivation path has a narrow exception for status, cancellation and
-deactivation commands. There is no resume-to-therapy button for the removed Pod.
-Normal discard clears the interlock; the session files remain. An unreadable or
-corrupt interlock blocks ordinary commands. Interlock metadata remains readable
-after first unlock; private research journals use complete file protection.
+There is no persistent command lock and no deactivation/discard exception. Normal
+legacy, raw and AID send implementations are restored to the pre-live-experiment
+version (`9c5950a`). Dedicated experiment methods handle signing and durable capture.
+The pump manager has a process-local, token-owned maintenance pause; queued status
+and alert work rechecks it before running. The automatic-dosing guard only rejects
+experiment operations; it does not modify Trio's setting or intercept therapy commands.
+
+Old interlock files are consulted only when opening an experiment, to locate its
+existing journal. They have no effect on ordinary commands. Journal snapshots and
+mutation uncertainty remain durable and private; this is separate from pausing
+background maintenance.
 
 Experiment reads use the existing transport directly. Only secure sequence/nonce
 state is returned through the transport delegate. Experimental glucose, status and
@@ -87,7 +98,7 @@ states are retained independently.
 
 ## Signing selection and remaining hardware uncertainty
 
-Before reserving the Pod, the adapter loads its controller registration, verifies
+Before opening the journal, the adapter loads its controller registration, verifies
 that its signing key matches the active Pod context, and extracts the certificate's
 `commands:` policy from structurally parsed DER extension URI/IA5 fields. This is
 policy extraction from an already-provisioned registration, not certificate trust
@@ -116,7 +127,7 @@ References in `manudrijvers/re-omnipod`:
 
 `swift test` covers strict parsing, action gates, uncertainty, durable storage,
 redaction, signing-policy extraction, binary read batches, target checks and
-persistent isolation. Physical branches use a deterministic radio double in tests;
+background-pause lifecycle and journal continuity. Physical branches use a deterministic radio double in tests;
 none of those results are physical Pod evidence. The optional private incident
 replay is skipped unless `O5_INCIDENT_LOG` is supplied.
 

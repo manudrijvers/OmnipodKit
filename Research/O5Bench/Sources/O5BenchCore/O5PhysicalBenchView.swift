@@ -20,7 +20,7 @@ public struct O5PhysicalBenchView: View {
         Form {
             Section("Real Pod experiment") {
                 Text("Keep this Pod active in Trio. After the experiment, deactivate it and install a new Pod normally.")
-                Text("Starting reserves the Pod for experiments and blocks ordinary app commands until you replace it. Existing Pod delivery is not changed by starting this session.")
+                Text("Turn automatic dosing off in Trio and leave it off until you replace this Pod. During this session, background status polling and alert maintenance pause. Existing Pod delivery continues unchanged.")
                 Toggle("I have removed the Pod from my body; it is no longer supplying therapy", isOn: $removed)
                     .disabled(model.state != nil || model.busy)
                 Button("Start session with the active Pod") { model.open() }
@@ -100,7 +100,7 @@ private final class PhysicalBenchModel: ObservableObject {
 
     func open() {
         guard !busy, runner == nil else { return }
-        busy = true; message = "Reserving the active Pod and opening durable capture…"
+        busy = true; message = "Checking automatic dosing and opening capture…"
         let opener = self.opener
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Result { () -> (O5PhysicalBenchConnection, BenchRunner, URL) in
@@ -157,7 +157,10 @@ private final class PhysicalBenchModel: ObservableObject {
     }
     func perform(_ action: BenchAction, code: String, serial: String) {
         guard let directory else { return }
-        if action == .diagnostic { connection?.allowDiagnosticReadback() }
+        if action == .diagnostic {
+            do { try connection?.allowDiagnosticReadback() }
+            catch { message = error.localizedDescription; return }
+        }
         run { runner in
             let identity = action == .provision ? try BenchIdentity(code: code, serial: serial) : nil
             try runner.perform(action, identity: identity,

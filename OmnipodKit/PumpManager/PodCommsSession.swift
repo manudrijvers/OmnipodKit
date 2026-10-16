@@ -1232,30 +1232,26 @@ extension PodCommsSession {
         guard let ble = transport as? BlePodMessageTransport, podState.podType.isO5 else {
             throw PodCommsError.noPodPaired
         }
-        ble.benchAuthorization = authorize; ble.benchCapture = capture
-        defer { ble.benchAuthorization = nil; ble.benchCapture = nil }
         try authorize()
         if requests.count == 2 && requests.allSatisfy({ $0.body.starts(with: Data("SE".utf8)) }) {
             // One application batch in one encrypted packet; never two SET sends.
             let payload = requests[0].body + Data([0x2c]) + requests[1].body
-            return [try ble.sendO5AidCommand(payload, responsePrefix: "", benchSigningMode: policy.mode)]
+            return [try ble.sendBenchAidCommand(payload, mode: policy.mode, authorize: authorize, capture: capture)]
         }
         if requests.count == 2, requests[0].kind == .aid, requests[0].body == Data("G3.12".utf8),
            requests[1].kind == .legacyPage7 {
-            return try ble.sendBenchStatusBatch(mode: policy.mode)
+            return try ble.sendBenchStatusBatch(mode: policy.mode, authorize: authorize, capture: capture)
         }
         return try requests.map { request in
             try authorize()
             switch request.kind {
             case .aid:
-                return try ble.sendO5AidCommand(request.body, responsePrefix: "", benchSigningMode: policy.mode)
+                return try ble.sendBenchAidCommand(request.body, mode: policy.mode, authorize: authorize, capture: capture)
             case .legacyStatus, .legacyPage7:
                 let type: PodInfoResponseSubType = request.kind == .legacyStatus ? .detailedStatus : .noSeqStatus
-                let command = GetStatusCommand(podInfoType: type)
                 // Direct transport read persists only sequence/nonce state through
                 // its delegate. It does not feed status/glucose into treatment stores.
-                let reply = try ble.sendMessage(Message(address: podState.address,
-                    messageBlocks: [command], sequenceNum: ble.messageNumber))
+                let reply = try ble.sendBenchStatus(type: type, authorize: authorize, capture: capture)
                 guard reply.address == podState.address, reply.messageBlocks.count == 1 else {
                     throw PodCommsError.invalidData
                 }
@@ -1266,5 +1262,4 @@ extension PodCommsSession {
             }
         }
     }
-    func allowBenchCloseout() { (transport as? BlePodMessageTransport)?.benchCloseout = true }
 }

@@ -62,7 +62,7 @@ final class BenchRunner {
         guard !busy else { throw BenchError.busy }
         guard offBodyConfirmed, session.locks.isEmpty, !captureFailed else { throw BenchError.blocked }
         session.offBodyConfirmed = true; session.armed = true
-        try event("armed", ["scope": transport.physical ? "physical removed Pod; exclusive access until normal replacement" : "synthetic-only"])
+        try event("armed", ["scope": transport.physical ? "physical removed Pod; automatic dosing off; background maintenance paused during session" : "synthetic-only"])
     }
 
     func recordFeed(phoneOK: Bool, watchOK: Bool, note: String = "") throws {

@@ -1,196 +1,198 @@
 [0/1] Planning build
 Building for debugging...
-[0/6] Copying source-checksums.json
-[0/6] Write sources
-[3/6] Write swift-version-24593BA9C3E375BF.txt
-[5/8] Emitting module O5BenchCore
-[6/8] Compiling O5BenchCore BenchRunner.swift
-[7/16] Write Objects.LinkFileList
-[8/18] Linking o5-bench
-[10/18] Compiling O5BenchCoreTests PhysicalBenchTests.swift
-[11/18] Emitting module O5BenchCoreTests
-[12/19] /work/.build/x86_64-unknown-linux-gnu/debug/O5BenchPackageDiscoveredTests.derived/all-discovered-tests.swift
-[13/20] Write sources
-[14/20] Wrapping AST for O5BenchCoreTests for debugging
-[16/22] Emitting module O5BenchPackageDiscoveredTests
-[17/22] Compiling O5BenchPackageDiscoveredTests O5BenchCoreTests.swift
-[18/23] Compiling O5BenchPackageDiscoveredTests all-discovered-tests.swift
-[19/24] /work/.build/x86_64-unknown-linux-gnu/debug/O5BenchPackageTests.derived/runner.swift
-[20/25] Write sources
-[21/25] Wrapping AST for O5BenchPackageDiscoveredTests for debugging
-[23/27] Compiling O5BenchPackageTests runner.swift
-[24/27] Emitting module O5BenchPackageTests
-[25/27] Write Objects.LinkFileList
-[26/27] Linking O5BenchPackageTests.xctest
-Build complete! (1.96s)
-Test Suite 'All tests' started at 2026-10-16 18:58:11.515
-Test Suite 'debug.xctest' started at 2026-10-16 18:58:11.516
-Test Suite 'BenchRunnerTests' started at 2026-10-16 18:58:11.516
-Test Case 'BenchRunnerTests.testAllPrivateTargetComponentsChecked' started at 2026-10-16 18:58:11.516
-Test Case 'BenchRunnerTests.testAllPrivateTargetComponentsChecked' passed (0.123 seconds)
-Test Case 'BenchRunnerTests.testBatchFramingRejectsMissingExtraAndWrongOrderedMembers' started at 2026-10-16 18:58:11.639
-Test Case 'BenchRunnerTests.testBatchFramingRejectsMissingExtraAndWrongOrderedMembers' passed (0.151 seconds)
-Test Case 'BenchRunnerTests.testBothBatchResultsValidatedIncludingFailedSecondMember' started at 2026-10-16 18:58:11.790
+[0/5] Copying source-checksums.json
+[1/5] Write sources
+[2/5] Write swift-version-24593BA9C3E375BF.txt
+[4/6] Emitting module O5BenchCoreTests
+[5/6] Compiling O5BenchCoreTests PhysicalBenchTests.swift
+[6/13] /work/.build/x86_64-unknown-linux-gnu/debug/O5BenchPackageDiscoveredTests.derived/all-discovered-tests.swift
+[7/14] Write sources
+[8/14] Wrapping AST for O5BenchCoreTests for debugging
+[10/16] Compiling O5BenchPackageDiscoveredTests O5BenchCoreTests.swift
+[11/16] Emitting module O5BenchPackageDiscoveredTests
+[12/17] Compiling O5BenchPackageDiscoveredTests all-discovered-tests.swift
+[13/18] /work/.build/x86_64-unknown-linux-gnu/debug/O5BenchPackageTests.derived/runner.swift
+[14/19] Write sources
+[15/19] Wrapping AST for O5BenchPackageDiscoveredTests for debugging
+[17/21] Emitting module O5BenchPackageTests
+[18/21] Compiling O5BenchPackageTests runner.swift
+[19/21] Write Objects.LinkFileList
+[20/21] Linking O5BenchPackageTests.xctest
+Build complete! (1.41s)
+Test Suite 'All tests' started at 2026-10-16 19:27:21.822
+Test Suite 'debug.xctest' started at 2026-10-16 19:27:21.823
+Test Suite 'BenchRunnerTests' started at 2026-10-16 19:27:21.823
+Test Case 'BenchRunnerTests.testAllPrivateTargetComponentsChecked' started at 2026-10-16 19:27:21.823
+Test Case 'BenchRunnerTests.testAllPrivateTargetComponentsChecked' passed (0.127 seconds)
+Test Case 'BenchRunnerTests.testBatchFramingRejectsMissingExtraAndWrongOrderedMembers' started at 2026-10-16 19:27:21.950
+Test Case 'BenchRunnerTests.testBatchFramingRejectsMissingExtraAndWrongOrderedMembers' passed (0.15 seconds)
+Test Case 'BenchRunnerTests.testBothBatchResultsValidatedIncludingFailedSecondMember' started at 2026-10-16 19:27:22.100
 Test Case 'BenchRunnerTests.testBothBatchResultsValidatedIncludingFailedSecondMember' passed (0.03 seconds)
-Test Case 'BenchRunnerTests.testCompleteSeparateActionsAndExactMutationScope' started at 2026-10-16 18:58:11.820
+Test Case 'BenchRunnerTests.testCompleteSeparateActionsAndExactMutationScope' started at 2026-10-16 19:27:22.130
 Test Case 'BenchRunnerTests.testCompleteSeparateActionsAndExactMutationScope' passed (0.038 seconds)
-Test Case 'BenchRunnerTests.testConcurrentReentrantActionDoesNotDispatch' started at 2026-10-16 18:58:11.857
-Test Case 'BenchRunnerTests.testConcurrentReentrantActionDoesNotDispatch' passed (0.032 seconds)
-Test Case 'BenchRunnerTests.testDifferentIncompleteAndMalformedIdentityBlockProvision' started at 2026-10-16 18:58:11.889
-Test Case 'BenchRunnerTests.testDifferentIncompleteAndMalformedIdentityBlockProvision' passed (0.15 seconds)
-Test Case 'BenchRunnerTests.testEmptyMissingNoncanonicalAndWrongPrefixSETResultsFail' started at 2026-10-16 18:58:12.039
-Test Case 'BenchRunnerTests.testEmptyMissingNoncanonicalAndWrongPrefixSETResultsFail' passed (0.152 seconds)
-Test Case 'BenchRunnerTests.testEnableObservationRequiredAndReadbackMismatchStopsChain' started at 2026-10-16 18:58:12.191
+Test Case 'BenchRunnerTests.testConcurrentReentrantActionDoesNotDispatch' started at 2026-10-16 19:27:22.167
+Test Case 'BenchRunnerTests.testConcurrentReentrantActionDoesNotDispatch' passed (0.031 seconds)
+Test Case 'BenchRunnerTests.testDifferentIncompleteAndMalformedIdentityBlockProvision' started at 2026-10-16 19:27:22.199
+Test Case 'BenchRunnerTests.testDifferentIncompleteAndMalformedIdentityBlockProvision' passed (0.151 seconds)
+Test Case 'BenchRunnerTests.testEmptyMissingNoncanonicalAndWrongPrefixSETResultsFail' started at 2026-10-16 19:27:22.349
+Test Case 'BenchRunnerTests.testEmptyMissingNoncanonicalAndWrongPrefixSETResultsFail' passed (0.153 seconds)
+Test Case 'BenchRunnerTests.testEnableObservationRequiredAndReadbackMismatchStopsChain' started at 2026-10-16 19:27:22.502
 Test Case 'BenchRunnerTests.testEnableObservationRequiredAndReadbackMismatchStopsChain' passed (0.03 seconds)
-Test Case 'BenchRunnerTests.testFeedInterruptionAndAudibleAlarmAreIndependentLocks' started at 2026-10-16 18:58:12.221
-Test Case 'BenchRunnerTests.testFeedInterruptionAndAudibleAlarmAreIndependentLocks' passed (0.233 seconds)
-Test Case 'BenchRunnerTests.testFileStoreExclusiveLeasePersistenceAndPermissions' started at 2026-10-16 18:58:12.454
-Test Case 'BenchRunnerTests.testFileStoreExclusiveLeasePersistenceAndPermissions' passed (0.013 seconds)
-Test Case 'BenchRunnerTests.testIdentityBytesAndCaseInsensitiveValidatedComparison' started at 2026-10-16 18:58:12.467
+Test Case 'BenchRunnerTests.testFeedInterruptionAndAudibleAlarmAreIndependentLocks' started at 2026-10-16 19:27:22.532
+Test Case 'BenchRunnerTests.testFeedInterruptionAndAudibleAlarmAreIndependentLocks' passed (0.236 seconds)
+Test Case 'BenchRunnerTests.testFileStoreExclusiveLeasePersistenceAndPermissions' started at 2026-10-16 19:27:22.768
+Test Case 'BenchRunnerTests.testFileStoreExclusiveLeasePersistenceAndPermissions' passed (0.014 seconds)
+Test Case 'BenchRunnerTests.testIdentityBytesAndCaseInsensitiveValidatedComparison' started at 2026-10-16 19:27:22.782
 Test Case 'BenchRunnerTests.testIdentityBytesAndCaseInsensitiveValidatedComparison' passed (0.0 seconds)
-Test Case 'BenchRunnerTests.testInterruptedFileSnapshotSurvivesReloadWithoutMutationReplay' started at 2026-10-16 18:58:12.467
-Test Case 'BenchRunnerTests.testInterruptedFileSnapshotSurvivesReloadWithoutMutationReplay' passed (1.532 seconds)
-Test Case 'BenchRunnerTests.testLateSamplesDoNotClaimReceptionThroughoutTheWindow' started at 2026-10-16 18:58:13.999
+Test Case 'BenchRunnerTests.testInterruptedFileSnapshotSurvivesReloadWithoutMutationReplay' started at 2026-10-16 19:27:22.782
+Test Case 'BenchRunnerTests.testInterruptedFileSnapshotSurvivesReloadWithoutMutationReplay' passed (1.436 seconds)
+Test Case 'BenchRunnerTests.testLateSamplesDoNotClaimReceptionThroughoutTheWindow' started at 2026-10-16 19:27:24.217
 Test Case 'BenchRunnerTests.testLateSamplesDoNotClaimReceptionThroughoutTheWindow' passed (0.033 seconds)
-Test Case 'BenchRunnerTests.testMatchingIdentitySkipsProvisionAndDoesNotClaimExercise' started at 2026-10-16 18:58:14.032
+Test Case 'BenchRunnerTests.testMatchingIdentitySkipsProvisionAndDoesNotClaimExercise' started at 2026-10-16 19:27:24.250
 Test Case 'BenchRunnerTests.testMatchingIdentitySkipsProvisionAndDoesNotClaimExercise' passed (0.03 seconds)
-Test Case 'BenchRunnerTests.testMissingBaselineOrReconnectCannotMutate' started at 2026-10-16 18:58:14.062
+Test Case 'BenchRunnerTests.testMissingBaselineOrReconnectCannotMutate' started at 2026-10-16 19:27:24.280
 Test Case 'BenchRunnerTests.testMissingBaselineOrReconnectCannotMutate' passed (0.029 seconds)
-Test Case 'BenchRunnerTests.testMissingUnknownOrMalformedInterfaceNeverReusesSuccessfulState' started at 2026-10-16 18:58:14.091
-Test Case 'BenchRunnerTests.testMissingUnknownOrMalformedInterfaceNeverReusesSuccessfulState' passed (0.121 seconds)
-Test Case 'BenchRunnerTests.testNegativeGlucoseAndRepeatedSensorTimestampsDoNotShowSustainedReception' started at 2026-10-16 18:58:14.212
+Test Case 'BenchRunnerTests.testMissingUnknownOrMalformedInterfaceNeverReusesSuccessfulState' started at 2026-10-16 19:27:24.309
+Test Case 'BenchRunnerTests.testMissingUnknownOrMalformedInterfaceNeverReusesSuccessfulState' passed (0.12 seconds)
+Test Case 'BenchRunnerTests.testNegativeGlucoseAndRepeatedSensorTimestampsDoNotShowSustainedReception' started at 2026-10-16 19:27:24.430
 Test Case 'BenchRunnerTests.testNegativeGlucoseAndRepeatedSensorTimestampsDoNotShowSustainedReception' passed (0.066 seconds)
-Test Case 'BenchRunnerTests.testNoPhysicalTransportCanBeSelected' started at 2026-10-16 18:58:14.278
+Test Case 'BenchRunnerTests.testNoPhysicalTransportCanBeSelected' started at 2026-10-16 19:27:24.495
 Test Case 'BenchRunnerTests.testNoPhysicalTransportCanBeSelected' passed (0.0 seconds)
-Test Case 'BenchRunnerTests.testPersistenceFailureBeforeAndAfterSendBlocksFurtherMutations' started at 2026-10-16 18:58:14.278
-Test Case 'BenchRunnerTests.testPersistenceFailureBeforeAndAfterSendBlocksFurtherMutations' passed (0.245 seconds)
-Test Case 'BenchRunnerTests.testReceptionStoppingAfterTwoSamplesIsNotSustained' started at 2026-10-16 18:58:14.522
-Test Case 'BenchRunnerTests.testReceptionStoppingAfterTwoSamplesIsNotSustained' passed (0.033 seconds)
-Test Case 'BenchRunnerTests.testRedactedExportRemovesIdentityTargetsRawBytesAndOperatorNotes' started at 2026-10-16 18:58:14.556
-Test Case 'BenchRunnerTests.testRedactedExportRemovesIdentityTargetsRawBytesAndOperatorNotes' passed (0.143 seconds)
-Test Case 'BenchRunnerTests.testRestartsAtEverySendMilestonePreserveEvidenceAndNeverAdvance' started at 2026-10-16 18:58:14.699
-Test Case 'BenchRunnerTests.testRestartsAtEverySendMilestonePreserveEvidenceAndNeverAdvance' passed (0.184 seconds)
-Test Case 'BenchRunnerTests.testSHA256KnownVectors' started at 2026-10-16 18:58:14.883
+Test Case 'BenchRunnerTests.testPersistenceFailureBeforeAndAfterSendBlocksFurtherMutations' started at 2026-10-16 19:27:24.495
+Test Case 'BenchRunnerTests.testPersistenceFailureBeforeAndAfterSendBlocksFurtherMutations' passed (0.242 seconds)
+Test Case 'BenchRunnerTests.testReceptionStoppingAfterTwoSamplesIsNotSustained' started at 2026-10-16 19:27:24.737
+Test Case 'BenchRunnerTests.testReceptionStoppingAfterTwoSamplesIsNotSustained' passed (0.034 seconds)
+Test Case 'BenchRunnerTests.testRedactedExportRemovesIdentityTargetsRawBytesAndOperatorNotes' started at 2026-10-16 19:27:24.771
+Test Case 'BenchRunnerTests.testRedactedExportRemovesIdentityTargetsRawBytesAndOperatorNotes' passed (0.139 seconds)
+Test Case 'BenchRunnerTests.testRestartsAtEverySendMilestonePreserveEvidenceAndNeverAdvance' started at 2026-10-16 19:27:24.910
+Test Case 'BenchRunnerTests.testRestartsAtEverySendMilestonePreserveEvidenceAndNeverAdvance' passed (0.181 seconds)
+Test Case 'BenchRunnerTests.testSHA256KnownVectors' started at 2026-10-16 19:27:25.092
 Test Case 'BenchRunnerTests.testSHA256KnownVectors' passed (0.0 seconds)
-Test Case 'BenchRunnerTests.testTargetAndFreshnessRecheckedAtDispatch' started at 2026-10-16 18:58:14.884
+Test Case 'BenchRunnerTests.testTargetAndFreshnessRecheckedAtDispatch' started at 2026-10-16 19:27:25.092
 Test Case 'BenchRunnerTests.testTargetAndFreshnessRecheckedAtDispatch' passed (0.061 seconds)
-Test Case 'BenchRunnerTests.testTimeoutAfterMutationNeverReplaysAndDiagnosticRemainsAvailable' started at 2026-10-16 18:58:14.945
+Test Case 'BenchRunnerTests.testTimeoutAfterMutationNeverReplaysAndDiagnosticRemainsAvailable' started at 2026-10-16 19:27:25.153
 Test Case 'BenchRunnerTests.testTimeoutAfterMutationNeverReplaysAndDiagnosticRemainsAvailable' passed (0.031 seconds)
-Test Case 'BenchRunnerTests.testUnconfirmedOffBodyOrUnarmedCannotMutate' started at 2026-10-16 18:58:14.976
-Test Case 'BenchRunnerTests.testUnconfirmedOffBodyOrUnarmedCannotMutate' passed (0.029 seconds)
-Test Case 'BenchRunnerTests.testUnexpectedModeFaultFirmwareAndControlStopMutation' started at 2026-10-16 18:58:15.006
-Test Case 'BenchRunnerTests.testUnexpectedModeFaultFirmwareAndControlStopMutation' passed (0.211 seconds)
-Test Case 'BenchRunnerTests.testUnknownOrAbsentDesiredAndAllowedTypesCannotAuthorizeMutation' started at 2026-10-16 18:58:15.217
+Test Case 'BenchRunnerTests.testUnconfirmedOffBodyOrUnarmedCannotMutate' started at 2026-10-16 19:27:25.183
+Test Case 'BenchRunnerTests.testUnconfirmedOffBodyOrUnarmedCannotMutate' passed (0.03 seconds)
+Test Case 'BenchRunnerTests.testUnexpectedModeFaultFirmwareAndControlStopMutation' started at 2026-10-16 19:27:25.213
+Test Case 'BenchRunnerTests.testUnexpectedModeFaultFirmwareAndControlStopMutation' passed (0.21 seconds)
+Test Case 'BenchRunnerTests.testUnknownOrAbsentDesiredAndAllowedTypesCannotAuthorizeMutation' started at 2026-10-16 19:27:25.423
 Test Case 'BenchRunnerTests.testUnknownOrAbsentDesiredAndAllowedTypesCannotAuthorizeMutation' passed (0.09 seconds)
-Test Suite 'BenchRunnerTests' passed at 2026-10-16 18:58:15.307
-	 Executed 28 tests, with 0 failures (0 unexpected) in 3.791 (3.791) seconds
-Test Suite 'O5AidCommandsTests' started at 2026-10-16 18:58:15.307
-Test Case 'O5AidCommandsTests.testAidPodStatus_getOnly' started at 2026-10-16 18:58:15.307
+Test Suite 'BenchRunnerTests' passed at 2026-10-16 19:27:25.513
+	 Executed 28 tests, with 0 failures (0 unexpected) in 3.69 (3.69) seconds
+Test Suite 'O5AidCommandsTests' started at 2026-10-16 19:27:25.513
+Test Case 'O5AidCommandsTests.testAidPodStatus_getOnly' started at 2026-10-16 19:27:25.513
 Test Case 'O5AidCommandsTests.testAidPodStatus_getOnly' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testAlgorithmInsulinHistory' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testAlgorithmInsulinHistory' started at 2026-10-16 19:27:25.513
 Test Case 'O5AidCommandsTests.testAlgorithmInsulinHistory' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testAlgorithmInsulinHistory_payloadSize' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testAlgorithmInsulinHistory_payloadSize' started at 2026-10-16 19:27:25.513
 Test Case 'O5AidCommandsTests.testAlgorithmInsulinHistory_payloadSize' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testCgmInterfaceCommand_enableDexcomG7' started at 2026-10-16 18:58:15.307
-Test Case 'O5AidCommandsTests.testCgmInterfaceCommand_enableDexcomG7' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testCgmStatus_dexcomG7' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testCgmInterfaceCommand_enableDexcomG7' started at 2026-10-16 19:27:25.513
+Test Case 'O5AidCommandsTests.testCgmInterfaceCommand_enableDexcomG7' passed (0.1 seconds)
+Test Case 'O5AidCommandsTests.testCgmStatus_dexcomG7' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testCgmStatus_dexcomG7' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testCgmStatus_rejectsLengthMismatch' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testCgmStatus_rejectsLengthMismatch' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testCgmStatus_rejectsLengthMismatch' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testDiaCommand' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testDiaCommand' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testDiaCommand' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testEgvCommand' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testEgvCommand' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testEgvCommand' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testExtendedSetResultDescription' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testExtendedSetResultDescription' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testExtendedSetResultDescription' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testG7SensorInfoCommand' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testG7SensorInfoCommand' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testG7SensorInfoCommand' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testResponsePrefixes' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testResponsePrefixes' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testResponsePrefixes' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testTargetBgProfile' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testTargetBgProfile' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testTargetBgProfile' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testTargetBgProfile_payloadSize' started at 2026-10-16 18:58:15.307
+Test Case 'O5AidCommandsTests.testTargetBgProfile_payloadSize' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testTargetBgProfile_payloadSize' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testTdiCommand' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidCommandsTests.testTdiCommand' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testTdiCommand' passed (0.0 seconds)
-Test Case 'O5AidCommandsTests.testUtcCommand' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidCommandsTests.testUtcCommand' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidCommandsTests.testUtcCommand' passed (0.0 seconds)
-Test Suite 'O5AidCommandsTests' passed at 2026-10-16 18:58:15.308
-	 Executed 15 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
-Test Suite 'O5AidIncidentTests' started at 2026-10-16 18:58:15.308
-Test Case 'O5AidIncidentTests.testProvidedIncidentExport' started at 2026-10-16 18:58:15.308
+Test Suite 'O5AidCommandsTests' passed at 2026-10-16 19:27:25.614
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.101 (0.101) seconds
+Test Suite 'O5AidIncidentTests' started at 2026-10-16 19:27:25.614
+Test Case 'O5AidIncidentTests.testProvidedIncidentExport' started at 2026-10-16 19:27:25.614
 /work/Tests/O5BenchCoreTests/O5AidIncidentTests.swift:9: O5AidIncidentTests.testProvidedIncidentExport : Test skipped - Set O5_INCIDENT_LOG to replay the private Trio NDJSON export
 Test Case 'O5AidIncidentTests.testProvidedIncidentExport' skipped (0.0 seconds)
-Test Suite 'O5AidIncidentTests' passed at 2026-10-16 18:58:15.308
+Test Suite 'O5AidIncidentTests' passed at 2026-10-16 19:27:25.614
 	 Executed 1 test, with 1 test skipped and 0 failures (0 unexpected) in 0.0 (0.0) seconds
-Test Suite 'O5AidResponsesTests' started at 2026-10-16 18:58:15.308
-Test Case 'O5AidResponsesTests.testAllG7FieldsPreserveRawBitsAndIdentity' started at 2026-10-16 18:58:15.308
+Test Suite 'O5AidResponsesTests' started at 2026-10-16 19:27:25.614
+Test Case 'O5AidResponsesTests.testAllG7FieldsPreserveRawBitsAndIdentity' started at 2026-10-16 19:27:25.614
 Test Case 'O5AidResponsesTests.testAllG7FieldsPreserveRawBitsAndIdentity' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testEveryG7FieldRejectsTruncationWithCorrectOuterLength' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidResponsesTests.testEveryG7FieldRejectsTruncationWithCorrectOuterLength' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testEveryG7FieldRejectsTruncationWithCorrectOuterLength' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testEveryPrefixTruncationFails' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidResponsesTests.testEveryPrefixTruncationFails' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testEveryPrefixTruncationFails' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testExtendedSetRequiresCanonicalZero' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidResponsesTests.testExtendedSetRequiresCanonicalZero' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testExtendedSetRequiresCanonicalZero' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testFlagsAndUnknownStatusRemainVisible' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidResponsesTests.testFlagsAndUnknownStatusRemainVisible' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testFlagsAndUnknownStatusRemainVisible' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testFullStatusAndFreshnessAreSeparateFromMode' started at 2026-10-16 18:58:15.308
+Test Case 'O5AidResponsesTests.testFullStatusAndFreshnessAreSeparateFromMode' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testFullStatusAndFreshnessAreSeparateFromMode' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testG6SignedFieldsAndUnavailableEgv' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testG6SignedFieldsAndUnavailableEgv' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testG6SignedFieldsAndUnavailableEgv' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testIncidentInterfaceAndEmptyIdentity' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testIncidentInterfaceAndEmptyIdentity' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testIncidentInterfaceAndEmptyIdentity' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testIncidentUnifiedStatusDoesNotImplyConnection' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testIncidentUnifiedStatusDoesNotImplyConnection' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testIncidentUnifiedStatusDoesNotImplyConnection' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testKeyAndMaskErrorsEvenWithWildcard' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testKeyAndMaskErrorsEvenWithWildcard' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testKeyAndMaskErrorsEvenWithWildcard' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testLengthsAndTrailingBytes' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testLengthsAndTrailingBytes' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testLengthsAndTrailingBytes' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testMaskOnlyAndUnknownEnumDoNotBecomeZero' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testMaskOnlyAndUnknownEnumDoNotBecomeZero' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testMaskOnlyAndUnknownEnumDoNotBecomeZero' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testRejectedFirstWriteStopsSequence' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testRejectedFirstWriteStopsSequence' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testRejectedFirstWriteStopsSequence' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testSecondWriteRejectionIsNotSuccess' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testSecondWriteRejectionIsNotSuccess' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testSecondWriteRejectionIsNotSuccess' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testSetGetComparesActualSentValue' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testSetGetComparesActualSentValue' started at 2026-10-16 19:27:25.615
 Test Case 'O5AidResponsesTests.testSetGetComparesActualSentValue' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testTransportFailureRemainsUnconfirmedAndIsNotRetried' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testTransportFailureRemainsUnconfirmedAndIsNotRetried' started at 2026-10-16 19:27:25.616
 Test Case 'O5AidResponsesTests.testTransportFailureRemainsUnconfirmedAndIsNotRetried' passed (0.0 seconds)
-Test Case 'O5AidResponsesTests.testUnsortedFieldsAndSlicedData' started at 2026-10-16 18:58:15.309
+Test Case 'O5AidResponsesTests.testUnsortedFieldsAndSlicedData' started at 2026-10-16 19:27:25.616
 Test Case 'O5AidResponsesTests.testUnsortedFieldsAndSlicedData' passed (0.0 seconds)
-Test Suite 'O5AidResponsesTests' passed at 2026-10-16 18:58:15.309
+Test Suite 'O5AidResponsesTests' passed at 2026-10-16 19:27:25.616
 	 Executed 17 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
-Test Suite 'PhysicalBenchTests' started at 2026-10-16 18:58:15.309
-Test Case 'PhysicalBenchTests.testBaselineExpiresWhileQueuedBeforeActualMutationSend' started at 2026-10-16 18:58:15.309
+Test Suite 'PhysicalBenchTests' started at 2026-10-16 19:27:25.616
+Test Case 'PhysicalBenchTests.testBackgroundPauseEndsOnStopAndReacquiresForDiagnostics' started at 2026-10-16 19:27:25.616
+Test Case 'PhysicalBenchTests.testBackgroundPauseEndsOnStopAndReacquiresForDiagnostics' passed (0.0 seconds)
+Test Case 'PhysicalBenchTests.testBaselineExpiresWhileQueuedBeforeActualMutationSend' started at 2026-10-16 19:27:25.616
 Test Case 'PhysicalBenchTests.testBaselineExpiresWhileQueuedBeforeActualMutationSend' passed (0.032 seconds)
-Test Case 'PhysicalBenchTests.testCaptureFailureAfterReplyLocksFurtherWrites' started at 2026-10-16 18:58:15.341
+Test Case 'PhysicalBenchTests.testCaptureFailureAfterReplyLocksFurtherWrites' started at 2026-10-16 19:27:25.648
 Test Case 'PhysicalBenchTests.testCaptureFailureAfterReplyLocksFurtherWrites' passed (0.032 seconds)
-Test Case 'PhysicalBenchTests.testDurableInterlockBlocksOrdinaryWrongAndStalePermits' started at 2026-10-16 18:58:15.373
-Test Case 'PhysicalBenchTests.testDurableInterlockBlocksOrdinaryWrongAndStalePermits' passed (0.007 seconds)
-Test Case 'PhysicalBenchTests.testEveryCertificateTruncationRejected' started at 2026-10-16 18:58:15.380
+Test Case 'PhysicalBenchTests.testEveryCertificateTruncationRejected' started at 2026-10-16 19:27:25.681
 Test Case 'PhysicalBenchTests.testEveryCertificateTruncationRejected' passed (0.0 seconds)
-Test Case 'PhysicalBenchTests.testPersistenceFailureBeforeDispatchStopsRadio' started at 2026-10-16 18:58:15.380
-Test Case 'PhysicalBenchTests.testPersistenceFailureBeforeDispatchStopsRadio' passed (0.031 seconds)
-Test Case 'PhysicalBenchTests.testPhysicalBatchAndAutomaticRawCapture' started at 2026-10-16 18:58:15.411
-Test Case 'PhysicalBenchTests.testPhysicalBatchAndAutomaticRawCapture' passed (0.034 seconds)
-Test Case 'PhysicalBenchTests.testPhysicalCancellationAndDiagnosticReset' started at 2026-10-16 18:58:15.445
-Test Case 'PhysicalBenchTests.testPhysicalCancellationAndDiagnosticReset' passed (0.1 seconds)
-Test Case 'PhysicalBenchTests.testProvisionedDefaultSelectsModeWithoutGuessing' started at 2026-10-16 18:58:15.545
+Test Case 'PhysicalBenchTests.testOldSessionCleanupCannotReleaseAnotherSessionPause' started at 2026-10-16 19:27:25.681
+Test Case 'PhysicalBenchTests.testOldSessionCleanupCannotReleaseAnotherSessionPause' passed (0.0 seconds)
+Test Case 'PhysicalBenchTests.testPersistenceFailureBeforeDispatchStopsRadio' started at 2026-10-16 19:27:25.681
+Test Case 'PhysicalBenchTests.testPersistenceFailureBeforeDispatchStopsRadio' passed (0.035 seconds)
+Test Case 'PhysicalBenchTests.testPhysicalBatchAndAutomaticRawCapture' started at 2026-10-16 19:27:25.716
+Test Case 'PhysicalBenchTests.testPhysicalBatchAndAutomaticRawCapture' passed (0.036 seconds)
+Test Case 'PhysicalBenchTests.testPhysicalCancellationAndDiagnosticReset' started at 2026-10-16 19:27:25.752
+Test Case 'PhysicalBenchTests.testPhysicalCancellationAndDiagnosticReset' passed (0.0 seconds)
+Test Case 'PhysicalBenchTests.testPreviousJournalLocatorSurvivesRemovalOfInterlock' started at 2026-10-16 19:27:25.752
+Test Case 'PhysicalBenchTests.testPreviousJournalLocatorSurvivesRemovalOfInterlock' passed (0.006 seconds)
+Test Case 'PhysicalBenchTests.testProvisionedDefaultSelectsModeWithoutGuessing' started at 2026-10-16 19:27:25.758
 Test Case 'PhysicalBenchTests.testProvisionedDefaultSelectsModeWithoutGuessing' passed (0.0 seconds)
-Test Case 'PhysicalBenchTests.testRawReplySurvivesLostAckAndRestartNeverReplays' started at 2026-10-16 18:58:15.546
-Test Case 'PhysicalBenchTests.testRawReplySurvivesLostAckAndRestartNeverReplays' passed (0.035 seconds)
-Test Case 'PhysicalBenchTests.testRedactedPhysicalExportOmitsRawBytesAndCertificateIdentifier' started at 2026-10-16 18:58:15.581
-Test Case 'PhysicalBenchTests.testRedactedPhysicalExportOmitsRawBytesAndCertificateIdentifier' passed (0.147 seconds)
-Test Case 'PhysicalBenchTests.testStatusReadBatchUsesLengthDelimitedBinaryAndRejectsExtraParts' started at 2026-10-16 18:58:15.728
+Test Case 'PhysicalBenchTests.testRawReplySurvivesLostAckAndRestartNeverReplays' started at 2026-10-16 19:27:25.758
+Test Case 'PhysicalBenchTests.testRawReplySurvivesLostAckAndRestartNeverReplays' passed (0.032 seconds)
+Test Case 'PhysicalBenchTests.testRedactedPhysicalExportOmitsRawBytesAndCertificateIdentifier' started at 2026-10-16 19:27:25.791
+Test Case 'PhysicalBenchTests.testRedactedPhysicalExportOmitsRawBytesAndCertificateIdentifier' passed (0.145 seconds)
+Test Case 'PhysicalBenchTests.testStableJournalIdentityDoesNotReservePod' started at 2026-10-16 19:27:25.936
+Test Case 'PhysicalBenchTests.testStableJournalIdentityDoesNotReservePod' passed (0.0 seconds)
+Test Case 'PhysicalBenchTests.testStatusReadBatchUsesLengthDelimitedBinaryAndRejectsExtraParts' started at 2026-10-16 19:27:25.936
 Test Case 'PhysicalBenchTests.testStatusReadBatchUsesLengthDelimitedBinaryAndRejectsExtraParts' passed (0.0 seconds)
-Test Case 'PhysicalBenchTests.testUnresolvedPolicyAndWrongTargetNeverDispatch' started at 2026-10-16 18:58:15.728
-Test Case 'PhysicalBenchTests.testUnresolvedPolicyAndWrongTargetNeverDispatch' passed (0.032 seconds)
-Test Suite 'PhysicalBenchTests' passed at 2026-10-16 18:58:15.760
-	 Executed 12 tests, with 0 failures (0 unexpected) in 0.451 (0.451) seconds
-Test Suite 'debug.xctest' passed at 2026-10-16 18:58:15.761
-	 Executed 73 tests, with 1 test skipped and 0 failures (0 unexpected) in 4.244 (4.244) seconds
-Test Suite 'All tests' passed at 2026-10-16 18:58:15.761
-	 Executed 73 tests, with 1 test skipped and 0 failures (0 unexpected) in 4.244 (4.244) seconds
+Test Case 'PhysicalBenchTests.testUnresolvedPolicyAndWrongTargetNeverDispatch' started at 2026-10-16 19:27:25.936
+Test Case 'PhysicalBenchTests.testUnresolvedPolicyAndWrongTargetNeverDispatch' passed (0.031 seconds)
+Test Suite 'PhysicalBenchTests' passed at 2026-10-16 19:27:25.967
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.351 (0.351) seconds
+Test Suite 'debug.xctest' passed at 2026-10-16 19:27:25.967
+	 Executed 76 tests, with 1 test skipped and 0 failures (0 unexpected) in 4.144 (4.144) seconds
+Test Suite 'All tests' passed at 2026-10-16 19:27:25.967
+	 Executed 76 tests, with 1 test skipped and 0 failures (0 unexpected) in 4.144 (4.144) seconds
 ◇ Test run started.
 ↳ Testing Library Version: 6.2.4 (5ee435b15ad40ec)
 ↳ Target Platform: x86_64-unknown-linux-gnu

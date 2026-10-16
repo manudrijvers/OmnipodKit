@@ -15,8 +15,8 @@ protocol BenchTransport: AnyObject {
     func reconnect() throws
 }
 
-/// A single, already-active controller context. The host must acquire the durable
-/// interlock before returning this connection. All callbacks run off the UI thread.
+/// A single, already-active controller context. All exchanges use the existing
+/// serialized BLE session queue; only background maintenance is paused.
 public final class O5PhysicalBenchConnection: BenchTransport {
     let sessionID: String
     let target: BenchTarget
@@ -26,6 +26,8 @@ public final class O5PhysicalBenchConnection: BenchTransport {
     let physical = true
     let clock = BenchClock(realTime: true)
     private let validate: () throws -> Void
+    private let activate: () throws -> Void
+    private let release: () -> Void
     private let selectPolicy: ([BenchRequest]) throws -> String
     private let send: ([BenchRequest], @escaping O5BenchWireCapture) throws -> [Data]
     private let reconnectPod: () throws -> Void
@@ -34,11 +36,13 @@ public final class O5PhysicalBenchConnection: BenchTransport {
 
     public init(sessionID: String, target: BenchTarget, firmware: String, bleVersion: String, activationProvenance: String,
                 validate: @escaping () throws -> Void,
+                activate: @escaping () throws -> Void = {}, release: @escaping () -> Void = {},
                 selectPolicy: @escaping ([BenchRequest]) throws -> String,
                 exchange: @escaping ([BenchRequest], @escaping O5BenchWireCapture) throws -> [Data],
                 reconnect: @escaping () throws -> Void) {
         self.sessionID = sessionID; self.target = target; self.firmware = firmware; self.bleVersion = bleVersion
         self.activationProvenance = activationProvenance; self.validate = validate
+        self.activate = activate; self.release = release
         self.selectPolicy = selectPolicy; self.send = exchange; self.reconnectPod = reconnect
     }
     public func validateAccess() throws { try checkAccess() }
@@ -53,61 +57,59 @@ public final class O5PhysicalBenchConnection: BenchTransport {
         return try send(requests, capture)
     }
     func reconnect() throws { try checkAccess(); try reconnectPod() }
-    func allowDiagnosticReadback() { stopLock.lock(); stopped = false; stopLock.unlock() }
-    public func stop() { stopLock.lock(); stopped = true; stopLock.unlock() }
+    func allowDiagnosticReadback() throws {
+        stopLock.lock(); defer { stopLock.unlock() }
+        try activate()
+        stopped = false
+    }
+    public func stop() {
+        stopLock.lock(); defer { stopLock.unlock() }
+        stopped = true
+        release()
+    }
+    deinit { release() }
 }
 
-/// Persisted separately from the journal so ordinary writers are still blocked
-/// when a journal is missing/corrupt or the application has restarted.
-public enum O5BenchInterlock {
-    private struct Lease: Codable { let id: String; let target: BenchTarget }
-    private static let mutex = NSLock()
-    private static func path(_ controller: UInt32, create: Bool = false) throws -> URL {
+/// A process-local pause for automatic status/alert maintenance, never a send lock.
+/// Tokens prevent cleanup of an old session from ending a newer session's pause.
+public final class O5BenchBackgroundPause {
+    private let mutex = NSLock()
+    private var owner: UUID?
+    public init() {}
+    public var isActive: Bool {
+        mutex.lock(); defer { mutex.unlock() }
+        return owner != nil
+    }
+    public func begin(_ token: UUID) throws {
+        mutex.lock(); defer { mutex.unlock() }
+        guard owner == nil || owner == token else { throw BenchError.busy }
+        owner = token
+    }
+    public func end(_ token: UUID) {
+        mutex.lock(); defer { mutex.unlock() }
+        if owner == token { owner = nil }
+    }
+}
+
+/// Stable experiment journal identity. Normal commands never consult this metadata.
+public enum O5BenchJournal {
+    public static func sessionID(controller: UInt32, target: BenchTarget) throws -> String {
+        // Preserve captures made by the earlier interlock implementation. The old
+        // file is only a journal locator now; it cannot block any ordinary command.
+        struct OldLease: Decodable { let id: String; let target: BenchTarget }
         let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-            appropriateFor: nil, create: create).appendingPathComponent("O5BenchInterlocks")
-        if create {
-            try FileBenchStore.privateDirectory(root)
-            #if os(iOS)
-            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: root.path)
-            #endif
-        }
-        return root.appendingPathComponent("\(controller).json")
+            appropriateFor: nil, create: false)
+        let old = root.appendingPathComponent("O5BenchInterlocks/\(controller).json")
+        do {
+            let lease = try JSONDecoder().decode(OldLease.self, from: Data(contentsOf: old))
+            if lease.target == target {
+                guard UUID(uuidString: lease.id) != nil else { throw BenchError.logging }
+                return lease.id
+            }
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile { }
+        let bytes = Data("\(controller):\(target.lot):\(target.sequence):\(target.bleAssociation):\(target.secureContextReference)".utf8)
+        let h = Array(SHA256.hex(bytes).prefix(32))
+        return String(h[0..<8]) + "-" + String(h[8..<12]) + "-" + String(h[12..<16]) + "-" + String(h[16..<20]) + "-" + String(h[20..<32])
     }
-    public static func acquire(controller: UInt32, target: BenchTarget) throws -> String {
-        mutex.lock(); defer { mutex.unlock() }
-        let url = try path(controller, create: true)
-        if FileManager.default.fileExists(atPath: url.path) {
-            let lease = try JSONDecoder().decode(Lease.self, from: Data(contentsOf: url))
-            guard lease.target == target else { throw BenchError.target }
-            return lease.id // Reopening preserves the same journal, including unknown outcomes.
-        }
-        let lease = Lease(id: UUID().uuidString, target: target)
-        try FileBenchStore.write(FileBenchStore.encode(lease), to: url)
-        #if os(iOS)
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: url.path)
-        #endif
-        return lease.id
-    }
-    public static func check(controller: UInt32, permit: String? = nil, target: BenchTarget? = nil,
-                             closeout: Bool = false) throws {
-        mutex.lock(); defer { mutex.unlock() }
-        let url = try path(controller)
-        let data: Data
-        do { data = try Data(contentsOf: url) }
-        catch let error as CocoaError where error.code == .fileReadNoSuchFile {
-            if permit != nil { throw BenchError.blocked }; return
-        }
-        // Ordinary commands fail even if the lease cannot be decoded.
-        if closeout { return }
-        guard let permit, let target else { throw BenchError.blocked }
-        let lease = try JSONDecoder().decode(Lease.self, from: data)
-        guard lease.id == permit, lease.target == target else { throw BenchError.target }
-    }
-    public static func forget(controller: UInt32) throws {
-        mutex.lock(); defer { mutex.unlock() }
-        let url = try path(controller)
-        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
-    }
-    /// Stable opaque reference; never returns the supplied context/key bytes.
     public static func contextReference(_ data: Data) -> String { SHA256.hex(data) }
 }

@@ -140,23 +140,75 @@ final class PhysicalBenchTests: XCTestCase {
         connection.stop()
         XCTAssertThrowsError(try connection.exchange([.enable], capture: { _, _ in }))
         XCTAssertEqual(sends, 0)
-        connection.allowDiagnosticReadback()
+        try connection.allowDiagnosticReadback()
         XCTAssertNoThrow(try connection.checkAccess())
         XCTAssertTrue(connection.clock.realTime)
     }
-    func testDurableInterlockBlocksOrdinaryWrongAndStalePermits() throws {
+    func testBackgroundPauseEndsOnStopAndReacquiresForDiagnostics() throws {
+        let pause = O5BenchBackgroundPause()
+        let token = UUID()
+        var automaticDosing = false
+        let activate = {
+            guard !automaticDosing else { throw BenchError.blocked }
+            try pause.begin(token)
+        }
+        try activate()
+        var connection: O5PhysicalBenchConnection? = O5PhysicalBenchConnection(
+            sessionID: UUID().uuidString, target: .synthetic, firmware: "9.0.4", bleVersion: "5.0.2",
+            activationProvenance: "TEST", validate: { if automaticDosing { throw BenchError.blocked } },
+            activate: activate, release: { pause.end(token) }, selectPolicy: { _ in "test" },
+            exchange: { _, _ in [] }, reconnect: {})
+        XCTAssertTrue(pause.isActive)
+        connection?.stop()
+        XCTAssertFalse(pause.isActive)
+        automaticDosing = true
+        XCTAssertThrowsError(try connection?.allowDiagnosticReadback())
+        XCTAssertFalse(pause.isActive)
+        automaticDosing = false
+        try connection?.allowDiagnosticReadback()
+        XCTAssertTrue(pause.isActive)
+        automaticDosing = true
+        XCTAssertThrowsError(try connection?.checkAccess())
+        connection = nil
+        XCTAssertFalse(pause.isActive)
+    }
+    func testOldSessionCleanupCannotReleaseAnotherSessionPause() throws {
+        let pause = O5BenchBackgroundPause()
+        let first = UUID(), second = UUID()
+        try pause.begin(first)
+        XCTAssertThrowsError(try pause.begin(second))
+        pause.end(first)
+        try pause.begin(second)
+        pause.end(first)
+        XCTAssertTrue(pause.isActive)
+        pause.end(second)
+        XCTAssertFalse(pause.isActive)
+    }
+    func testStableJournalIdentityDoesNotReservePod() throws {
         let controller = UInt32.random(in: 1...UInt32.max)
-        defer { try? O5BenchInterlock.forget(controller: controller) }
-        try O5BenchInterlock.check(controller: controller)
-        let permit = try O5BenchInterlock.acquire(controller: controller, target: .synthetic)
-        XCTAssertThrowsError(try O5BenchInterlock.check(controller: controller))
-        XCTAssertThrowsError(try O5BenchInterlock.check(controller: controller, permit: "wrong", target: .synthetic))
-        try O5BenchInterlock.check(controller: controller, permit: permit, target: .synthetic)
-        XCTAssertEqual(try O5BenchInterlock.acquire(controller: controller, target: .synthetic), permit)
-        try O5BenchInterlock.check(controller: controller, closeout: true)
-        try O5BenchInterlock.forget(controller: controller)
-        XCTAssertThrowsError(try O5BenchInterlock.check(controller: controller, permit: permit, target: .synthetic))
-        try O5BenchInterlock.check(controller: controller)
+        let id = try O5BenchJournal.sessionID(controller: controller, target: .synthetic)
+        XCTAssertNotNil(UUID(uuidString: id))
+        XCTAssertEqual(try O5BenchJournal.sessionID(controller: controller, target: .synthetic), id)
+        var target = BenchTarget.synthetic
+        target = BenchTarget(lot: target.lot, sequence: target.sequence, bleAssociation: target.bleAssociation,
+                             secureContextReference: "different-context")
+        XCTAssertNotEqual(try O5BenchJournal.sessionID(controller: controller, target: target), id)
+    }
+
+    func testPreviousJournalLocatorSurvivesRemovalOfInterlock() throws {
+        let controller = UInt32.random(in: 1...UInt32.max)
+        let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+            appropriateFor: nil, create: true).appendingPathComponent("O5BenchInterlocks")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let file = root.appendingPathComponent("\(controller).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        struct OldLease: Encodable { let id: String; let target: BenchTarget }
+        let id = UUID().uuidString
+        try JSONEncoder().encode(OldLease(id: id, target: .synthetic)).write(to: file)
+        XCTAssertEqual(try O5BenchJournal.sessionID(controller: controller, target: .synthetic), id)
+        try Data("unreadable old journal locator".utf8).write(to: file)
+        XCTAssertThrowsError(try O5BenchJournal.sessionID(controller: controller, target: .synthetic))
+        XCTAssertFalse(O5BenchBackgroundPause().isActive)
     }
 
     // Minimal DER fixtures exercise structural extraction, not certificate trust.
