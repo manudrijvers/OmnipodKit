@@ -3,7 +3,7 @@
     "OmniTests/O5/O5AidCommandsTests.swift": "88e9ebefdeec91344b22fce0ae4797c49b0916bf0824f49e4ee79f34376660b1",
     "OmnipodKit.xcodeproj/project.pbxproj": "44ec0eaad792a5632a462ba6824fffa14a7d3af9382e9916abe74df28dca5373",
     "OmnipodKit/Bluetooth/BleMessageTransport.swift": "69d2e85502b3d5c50787e47414095cbcff12034c4b0b10ad3b28e6d96a5324e0",
-    "OmnipodKit/Bluetooth/BlePodComms.swift": "2a3859fca638a0810762b2d5e8aef1748b2514676b34be72aba574174501d7bb",
+    "OmnipodKit/Bluetooth/BlePodComms.swift": "c9039d1d5d2009bd1b7c79205806be5a16c37e0a0965e1182760002c9bedbb16",
     "OmnipodKit/Bluetooth/O5AidCommands.swift": "43100524085349b240fb6c25d80ca1fca8555c15df964e02d8998f14b60b6b05",
     "OmnipodKit/Bluetooth/PeripheralManager.swift": "dff6d543d888967d90ffeed89d6b032997460f6258b2b5979318bf8e2c3eb759",
     "OmnipodKit/PumpManager/OmniPumpManager.swift": "4096ad7da09ec969296fc0ee1cebb91bbf35af86dd3bcbea55cb618545a3eed6",
@@ -15,8 +15,8 @@
     "Research/O5Bench/Sources/O5BenchCore/BenchBatchCodec.swift": "02f16048e40b42b28fb06376f028ad377c61fef1ba45255628e2a695e5e387ea",
     "Research/O5Bench/Sources/O5BenchCore/BenchBuild.swift": "5b05057bf6d7761fc1f3b45c8768d73aae9dd9fcb9432be9bbe3f98ebd4d85c1",
     "Research/O5Bench/Sources/O5BenchCore/BenchConsole.swift": "a4e9921fab284e8fe0f4c89c9b28845dcaef2904b0d5e9991a9c2d8c7371eb9e",
-    "Research/O5Bench/Sources/O5BenchCore/BenchModel.swift": "73c62c6c944f201a66560c6683eb1a20ceee83f1283edf08d4eec3c18472ad82",
-    "Research/O5Bench/Sources/O5BenchCore/BenchRunner.swift": "c487a831659d6e849b88bbfce5eb97b18213893d86b750450d0023b852ddf404",
+    "Research/O5Bench/Sources/O5BenchCore/BenchModel.swift": "3034872e498752ef4e91c942eb9c3c74ce594c37cbcd600c0285c6bbdd5b4f28",
+    "Research/O5Bench/Sources/O5BenchCore/BenchRunner.swift": "7374994d0db2047cb76c6d4c6f1117248d9b9801514ceb7c5d6a84d74ec5172e",
     "Research/O5Bench/Sources/O5BenchCore/BenchStorage.swift": "ae1502d60b3786572ba5928d0604ae56c42733df044ea9df1de0110106d34ffb",
     "Research/O5Bench/Sources/O5BenchCore/Data.swift": "d0985a07fd698d5c6bd50051c079559bfabedcd490acf731e6db2d136f6b0099",
     "Research/O5Bench/Sources/O5BenchCore/FakeBenchTransport.swift": "8b8734ca03942be018dbc78aa005eaabcf4d8e33dfb2f1d0f1755525dbc1c02b",
@@ -24,7 +24,7 @@
     "Research/O5Bench/Sources/O5BenchCore/O5BenchReadBatchCodec.swift": "088be60843667f8efdd9db9d9544766934b2380079a0314a3ae66c3317550cd8",
     "Research/O5Bench/Sources/O5BenchCore/O5BenchSigningPolicy.swift": "e5230a754e17322f54c83b7f66dd500279e9c7b25536dcbc5dddd1005e3324f6",
     "Research/O5Bench/Sources/O5BenchCore/O5BenchView.swift": "464a655e4a6ccdf4e638cf77f826eee0888098e47b9b3c494205002478f2d39b",
-    "Research/O5Bench/Sources/O5BenchCore/O5PhysicalBenchView.swift": "72137c222e7ff3f750af7c76ed08c7d1357c35319362acdc23e8a8291e5357e2",
+    "Research/O5Bench/Sources/O5BenchCore/O5PhysicalBenchView.swift": "ff9a7f31b754c67605668b549ee9c6aba69143554c117504c832b6976b366843",
     "Research/O5Bench/Sources/O5BenchCore/PhysicalBenchTransport.swift": "9e34edd6d9575771492b3e85c74a34a19d68218a8098b417d31ce7e97b54d618",
     "Research/O5Bench/Sources/o5-bench/main.swift": "ca242671896266ec28563b401ae2de8294fd2716310c158eecf387a56a40eda9",
     "Research/O5Bench/Tests/O5BenchCoreTests/BenchRunnerTests.swift": "53497e59eb2c3a10c0dd11033ad0a078a6974f7bd0bdd4f6394985a6d617bd9c",
@@ -32,14 +32,14 @@
     "Research/O5Bench/Tests/O5BenchCoreTests/O5AidIncidentTests.swift": "35433339ccd6c232474b7fd1d14eefad95e706c38bbb08530607eda0a693212c",
     "Research/O5Bench/Tests/O5BenchCoreTests/O5AidResponsesTests.swift": "a9627747df40e4170682beb900485ea20084d400211a3da24f24a5ed3d761783",
     "Research/O5Bench/Tests/O5BenchCoreTests/O5CommLogFixtures.swift": "81dc6376a1c6549a4996b5f66a6aee7c4c3c19c95f067547e5958ccbbf01d56d",
-    "Research/O5Bench/Tests/O5BenchCoreTests/PhysicalBenchTests.swift": "8d6842897cad1a3ced6317175c653f4d8bffccf89e5c121b99d6c347007b4c2c",
+    "Research/O5Bench/Tests/O5BenchCoreTests/PhysicalBenchTests.swift": "91acec8bdeaf379b27886aeee1cb7c0f52aab896d7d1f1ad53e2327c12d41db2",
     "Research/O5Bench/Tests/O5BenchCoreTests/RetainedO5AidCommands.swift": "fa88a3b88bc05d9300ff6c30be0c18f892d2a650050e3b9df9e4bed7616dca91"
   },
   "revisions": {
     "OmnipodKitBase": "363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e",
     "TrioBase": "80b79cb0085505edce278216063d2bb2e64c7191",
     "research": "db92e426b97914ce1c80bdab45a74001a858840a",
-    "runnerSourceSHA256": "8a0c5d30d80d7c885c256505550cef971426be366afbfa4d7e74f16523405635"
+    "runnerSourceSHA256": "b08676361d0c992a648a355aefed5a72f6c0348618868bb6ae9f1674d3924a77"
   },
-  "sourceSHA256": "8a0c5d30d80d7c885c256505550cef971426be366afbfa4d7e74f16523405635"
+  "sourceSHA256": "b08676361d0c992a648a355aefed5a72f6c0348618868bb6ae9f1674d3924a77"
 }

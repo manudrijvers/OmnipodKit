@@ -105,6 +105,7 @@ private final class PhysicalBenchModel: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Result { () -> (O5PhysicalBenchConnection, BenchRunner, URL) in
                 let connection = try opener()
+                guard UUID(uuidString: connection.sessionID) != nil else { throw BenchError.logging }
                 let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                     appropriateFor: nil, create: true).appendingPathComponent("O5Bench/Physical/\(connection.sessionID)")
                 let runner = try BenchRunner(store: FileBenchStore(directory: root), transport: connection,
@@ -120,7 +121,8 @@ private final class PhysicalBenchModel: ObservableObject {
                 case .success(let (connection, runner, root)):
                     self.connection = connection; self.runner = runner; self.directory = root; self.state = runner.session
                     UIApplication.shared.isIdleTimerDisabled = true
-                    self.message = "Real Pod session ready. Capture the baseline first."
+                    self.message = runner.session.locks.isEmpty ? "Real Pod session ready. Capture the baseline first."
+                        : "Saved physical session reopened. Diagnostic readback and export are available."
                     if let note = self.interruption { self.interruption = nil; self.interrupt(note.note, audibleAlarm: note.alarm, observedAt: note.time) }
                 case .failure(let error): self.message = error.localizedDescription
                 }

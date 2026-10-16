@@ -231,7 +231,7 @@ final class BenchRunner {
         }
     }
 
-    /// Gate immediately before fake dispatch as well as at the action boundary.
+    /// Gate at dispatch as well as at the action boundary.
     /// Read-only diagnostics are available with pending/uncertain mutations.
     private func exchange(_ requests: [BenchRequest], group: String, expected: String = "strict parsed replies") throws -> [Data] {
         let mutation = requests.contains(where: \.isMutation)
@@ -268,6 +268,15 @@ final class BenchRunner {
                 if self.session.operations[i].wireRecords == nil { self.session.operations[i].wireRecords = [] }
                 self.session.operations[i].wireRecords?.append(BenchWireRecord(phase: phase, bytes: bytes, time: self.clock.stamp))
                 try self.persist()
+                if mutation, phase.hasPrefix("aid-send") {
+                    // Connection establishment and durable capture can take time.
+                    // Enforce freshness again at the actual radio-send callback.
+                    try self.checkTarget()
+                    guard self.session.armed, self.session.offBodyConfirmed, self.session.locks.isEmpty,
+                          self.session.phoneFeedOK, self.session.watchFeedOK, let snapshot = self.snapshot,
+                          self.clock.elapsed >= snapshot.received,
+                          self.clock.elapsed - snapshot.received <= 90 else { throw BenchError.baseline }
+                }
             }
         }
         catch {

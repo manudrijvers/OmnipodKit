@@ -1,7 +1,7 @@
 import Foundation
 
 enum BenchError: String, Error, LocalizedError {
-    case physicalDisabled = "Physical access disabled: batch framing and provisioned signing policy are unresolved."
+    case physicalDisabled = "The dry-run and CLI transport cannot access a physical Pod. Use Removed Pod Experiment in the iOS app."
     case target = "Target does not match the complete bench allowlist entry."
     case busy = "Another action or process owns this session."
     case blocked = "Mutation blocked; inspect the saved session and lock reasons."

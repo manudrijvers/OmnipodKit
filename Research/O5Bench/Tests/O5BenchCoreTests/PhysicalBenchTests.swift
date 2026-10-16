@@ -14,6 +14,7 @@ private final class PhysicalRadioDouble: BenchTransport {
     var access = true
     var rejectPolicy = false
     var loseAck = false
+    var beforeCapture: (([BenchRequest]) -> Void)?
     var afterCapture: (() throws -> Void)?
     func checkAccess() throws { if !access { throw BenchError.target } }
     func policy(for requests: [BenchRequest]) throws -> String {
@@ -23,6 +24,7 @@ private final class PhysicalRadioDouble: BenchTransport {
     func reconnect() throws { fake.reconnect() }
     func exchange(_ requests: [BenchRequest], capture: @escaping O5BenchWireCapture) throws -> [Data] {
         try checkAccess()
+        beforeCapture?(requests)
         try capture("aid-send-mode-4", requests.reduce(Data()) { $0 + $1.body })
         let replies = try fake.exchange(requests)
         for reply in replies { try capture("raw-response", reply) }
@@ -88,6 +90,16 @@ final class PhysicalBenchTests: XCTestCase {
         XCTAssertThrowsError(try runner.perform(.enable))
         XCTAssertEqual(radio.fake.sends.count, count)
     }
+    func testBaselineExpiresWhileQueuedBeforeActualMutationSend() throws {
+        let (runner, radio, _) = try ready()
+        radio.beforeCapture = { requests in
+            if requests.contains(where: \.isMutation) { radio.clock.advance(91) }
+        }
+        XCTAssertThrowsError(try runner.perform(.enable))
+        XCTAssertTrue(radio.fake.sends.allSatisfy { !$0.contains(where: \.isMutation) })
+        XCTAssertFalse(runner.session.locks.isEmpty)
+    }
+
     func testUnresolvedPolicyAndWrongTargetNeverDispatch() throws {
         let (runner, radio, _) = try ready()
         let count = radio.fake.sends.count; radio.rejectPolicy = true

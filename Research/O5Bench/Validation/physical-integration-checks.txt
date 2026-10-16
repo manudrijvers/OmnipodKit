@@ -1,6 +1,6 @@
 Physical runner source checks, 2026-10-16
 
-Portable Swift suite: 72 cases; 71 passed, 1 optional private incident replay skipped.
+Portable Swift suite: 73 cases; 72 passed, 1 optional private incident replay skipped.
 See physical-runner-tests.log. Physical branches use a deterministic radio double.
 Synthetic CLI smoke/export: see physical-integration-smoke.log and Samples/redacted-session.
 Independent Python checksum/redaction verifier: passed.

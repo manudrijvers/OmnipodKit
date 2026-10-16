@@ -859,7 +859,8 @@ extension BlePodComms {
     func makePhysicalBenchConnection() throws -> O5PhysicalBenchConnection {
         let prepared = try benchSync { _ -> (BenchTarget, String, String, String, O5BenchSigningPolicy, String) in
             guard let state = self.podState, state.podType.isO5, state.isActive,
-                  state.setupProgress == .completed, state.unacknowledgedCommand == nil else {
+                  state.setupProgress == .completed, state.unacknowledgedCommand == nil,
+                  !self.needsSessionEstablishment, state.bleMessageTransportState.ck?.isEmpty == false else {
                 throw PodCommsError.diagnosticMessage(str: "An active, fully set up Pod with no pending delivery command is required.")
             }
             let registration = try O5CertificateStore(controllerId: self.myId).registration
@@ -879,7 +880,10 @@ extension BlePodComms {
         let authorize = {
             guard let connection = weakConnection else { throw PodCommsError.noPodPaired }
             try connection.validateAccess()
-            guard self.myId == controller, try self.benchTarget() == target else {
+            guard self.myId == controller, !self.needsSessionEstablishment,
+                  self.manager?.peripheral.identifier.uuidString == target.bleAssociation,
+                  self.podState?.bleMessageTransportState.ck?.isEmpty == false,
+                  try self.benchTarget() == target else {
                 throw PodCommsError.diagnosticMessage(str: "The active Pod or its secure context changed.")
             }
         }
