@@ -95,12 +95,68 @@ final class BenchRunner {
         defer { mutex.unlock() }
         guard !busy else { throw BenchError.busy }
         busy = true; defer { busy = false }
+        if session.screenBaselineComplete == true || session.screenStarted == true {
+            guard action == .screenG7 || action == .diagnostic else { throw BenchError.screening }
+        }
         let step = BenchStep(id: UUID().uuidString, action: action, started: clock.stamp)
         let stepIndex = session.steps.count
         session.steps.append(step); session.activeStep = step.id
         try persist()
         do {
             switch action {
+            case .screenBaseline:
+                guard let baselineExport, session.locks.isEmpty, session.armed, session.offBodyConfirmed,
+                      !session.baselineComplete, !session.reconnectComplete,
+                      !session.operations.contains(where: { $0.requests.contains(where: \.isMutation) }) else {
+                    throw BenchError.screening
+                }
+                _ = try readSnapshot()
+                try requireScreenStartingState()
+                try export(to: baselineExport)
+                try event("screen-baseline-export-verified", ["protocol": "short-g7-screen-v1",
+                    "baselineSeconds": "120", "postBatchSeconds": "900",
+                    "unmeasuredInputs": "target/DIA, TDI flags, thresholds and history; not an initialization-equivalence test",
+                    "reconnectTest": "omitted for this screening protocol"])
+                _ = try observe(seconds: 120, requireEnable: false)
+                try requireScreenStartingState()
+                session.screenBaselineComplete = true
+            case .screenG7:
+                guard let identity, session.screenStarted != true else { throw BenchError.screening }
+                _ = try readSnapshot()
+                try mutationGate()
+                try requireScreenStartingState()
+                session.screenStarted = true
+                session.identity = identity
+                // Persist one-shot intent before any possible mutation. A failure or
+                // process restart cannot turn this into another enable/identity send.
+                try event("screen-one-shot-armed", ["protocol": "short-g7-screen-v1"])
+                _ = try exchange([.enable, .identity(identity)], group: "short-g7-enable-identity-batch",
+                    expected: "both canonical results; matching readback; 900s bounded screening, no stability claim")
+                guard let operation = session.operations.last, let preparedSend = operation.sendStarted else {
+                    throw BenchError.logging
+                }
+                let sentAt = operation.wireRecords?.first(where: { $0.phase.hasPrefix("aid-send") })?.time.monotonic
+                    ?? preparedSend.monotonic
+                try event("screen-observation-deadline", ["sentAtMonotonic": String(sentAt),
+                    "deadlineMonotonic": String(sentAt + 900),
+                    "anchor": operation.wireRecords?.contains(where: { $0.phase.hasPrefix("aid-send") }) == true
+                        ? "actual-send-capture" : "dispatch-start"])
+                let statusGroup = try exchange([.get("3.12"), .page7], group: "recovered-post-provision-status-group")
+                let status = try O5UnifiedAidStatus(statusGroup[0])
+                guard status.isManual, status.podActive else { throw BenchError.baseline }
+                let configured = try readSnapshot(group: "additional-bench-diagnostic-readback")
+                guard configured.interface.control == 0, identity.matches(configured.identity) else { throw BenchError.reply }
+                session.configurationConfirmed = true
+                try event("configuration-confirmed", ["pairing": "not established by SET acceptance"])
+                guard clock.elapsed < sentAt + 900 else { throw BenchError.observationExpired }
+                let observation = try observe(seconds: 900, requireEnable: true, startedAt: sentAt)
+                session.screenResult = observation.count > 0 ? "fresh-glucose-observed-in-short-window" : "no-fresh-glucose-observed-in-short-window"
+                try event("short-screen-result", ["result": session.screenResult!,
+                    "distinctFreshSensorSamples": String(observation.count),
+                    "elapsedSinceBatchSeconds": String(clock.elapsed - sentAt),
+                    "interpretation": "screening only; no sustained reliability, startup safety or reconnect result"])
+                session.armed = false
+                session.locks.append("short-screen-finished; diagnostic readback and export only")
             case .baseline:
                 guard let baselineExport else { throw BenchError.arguments }
                 try checkTarget()
@@ -217,8 +273,15 @@ final class BenchRunner {
         try checkTarget()
         guard !captureFailed, session.locks.isEmpty, session.offBodyConfirmed, session.armed,
               session.phoneFeedOK, session.watchFeedOK else { throw BenchError.blocked }
-        guard session.baselineComplete, session.reconnectComplete,
-              transport.firmware == "9.0.4", transport.bleVersion == "5.0.2",
+        let screening = session.steps.last?.action == .screenG7
+        if screening {
+            guard session.screenBaselineComplete == true else { throw BenchError.screening }
+            try requireScreenStartingState()
+        } else {
+            guard session.baselineComplete, session.reconnectComplete,
+                  session.screenBaselineComplete != true, session.screenStarted != true else { throw BenchError.baseline }
+        }
+        guard transport.firmware == "9.0.4", transport.bleVersion == "5.0.2",
               let snapshot, clock.elapsed >= snapshot.received, clock.elapsed - snapshot.received <= 90,
               snapshot.status.isManual, snapshot.status.podActive, snapshot.legacy.active,
               let desired = snapshot.interface.desiredSensorType,
@@ -228,6 +291,15 @@ final class BenchRunner {
               snapshot.legacy.fault == 0, snapshot.legacy.reservoirPulses > 0 else { throw BenchError.baseline }
         guard !session.operations.contains(where: { $0.requests.contains(where: \.isMutation) && $0.outcome == "pending" }) else {
             throw BenchError.blocked
+        }
+    }
+
+    private func requireScreenStartingState() throws {
+        guard transport.firmware == "9.0.4", transport.bleVersion == "5.0.2",
+              let snapshot, snapshot.interface.control == 255, snapshot.identity.isEmpty,
+              snapshot.legacy.suspended, snapshot.legacy.fault == 0,
+              snapshot.status.isManual, snapshot.status.podActive, snapshot.legacy.active else {
+            throw BenchError.screening
         }
     }
 
@@ -333,6 +405,7 @@ final class BenchRunner {
             "nominalRemainingServiceMinutes": String(80 * 60 - value.legacy.ageMinutes),
             "reservoirPulses": String(value.legacy.reservoirPulses), "alerts": String(value.legacy.alerts),
             "fault": String(value.legacy.fault), "loopState": String(value.status.loopState),
+            "deliveryStatus": String(value.legacy.deliveryStatus), "deliverySuspended": String(value.legacy.suspended),
             "ready": String(value.status.algorithmReady), "active": String(value.status.podActive),
             "control": value.interface.control.map(String.init) ?? "absent",
             "desiredType": value.interface.desiredSensorType.map(String.init) ?? "absent",
@@ -351,6 +424,9 @@ final class BenchRunner {
         guard value.status.isManual, value.status.podActive, value.legacy.active, value.legacy.fault == 0 else {
             session.locks.append("fault-inactive-or-unexpected-mode"); try persist(); throw BenchError.baseline
         }
+        if session.steps.last?.action == .screenBaseline || session.steps.last?.action == .screenG7 {
+            guard value.legacy.suspended else { throw BenchError.screening }
+        }
         snapshot = value
         if value.status.hasRecentG7Reading(maxAge: 360), let sensor = value.status.g7, sensor.sensorTimestamp >= 0 {
             session.lastSensorTimestamp = sensor.sensorTimestamp
@@ -363,8 +439,8 @@ final class BenchRunner {
         return value
     }
 
-    private func observe(seconds: Double, requireEnable: Bool) throws -> (count: Int, sustained: Bool, enabledThroughout: Bool) {
-        let start = clock.elapsed
+    private func observe(seconds: Double, requireEnable: Bool, startedAt: Double? = nil) throws -> (count: Int, sustained: Bool, enabledThroughout: Bool) {
+        let start = startedAt ?? clock.elapsed
         let previousSample = session.lastSensorTimestamp
         var distinct = Set<Int32>()
         var lastNewSampleAt: Double?
@@ -374,6 +450,7 @@ final class BenchRunner {
         var freshAtEnd = false
         repeat {
             let value = try readSnapshot()
+            if session.steps.last?.action == .screenBaseline { try requireScreenStartingState() }
             enabledThroughout = enabledThroughout && value.interface.control == 0
             if requireEnable, value.interface.control != 0 { throw BenchError.reply }
             if let expected = session.identity, !expected.matches(value.identity) { throw BenchError.identity }
@@ -392,12 +469,12 @@ final class BenchRunner {
             try checkpoint?("observation-sample")
             if clock.elapsed - start >= seconds { break }
             if transport.physical {
-                let until = clock.elapsed + 60
+                let until = min(clock.elapsed + 60, start + seconds)
                 while clock.elapsed < until {
                     try transport.checkAccess()
                     clock.advance(min(1, until - clock.elapsed))
                 }
-            } else { clock.advance(60) }
+            } else { clock.advance(min(60, max(0, start + seconds - clock.elapsed))) }
         } while true
         try event("observation-window", ["plannedSeconds": String(seconds), "elapsedSeconds": String(clock.elapsed - start),
             "cadenceSeconds": "60", "clock": transport.physical ? "process-uptime" : "virtual", "distinctFreshSensorSamples": String(distinct.count)])

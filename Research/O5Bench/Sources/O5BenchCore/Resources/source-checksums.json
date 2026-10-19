@@ -15,16 +15,16 @@
     "Research/O5Bench/Sources/O5BenchCore/BenchBatchCodec.swift": "02f16048e40b42b28fb06376f028ad377c61fef1ba45255628e2a695e5e387ea",
     "Research/O5Bench/Sources/O5BenchCore/BenchBuild.swift": "5b05057bf6d7761fc1f3b45c8768d73aae9dd9fcb9432be9bbe3f98ebd4d85c1",
     "Research/O5Bench/Sources/O5BenchCore/BenchConsole.swift": "a4e9921fab284e8fe0f4c89c9b28845dcaef2904b0d5e9991a9c2d8c7371eb9e",
-    "Research/O5Bench/Sources/O5BenchCore/BenchModel.swift": "3034872e498752ef4e91c942eb9c3c74ce594c37cbcd600c0285c6bbdd5b4f28",
-    "Research/O5Bench/Sources/O5BenchCore/BenchRunner.swift": "aae45f45735eccffff33a9d21018107bb379c6abdc03964bce07ebd614b42a81",
-    "Research/O5Bench/Sources/O5BenchCore/BenchStorage.swift": "ae1502d60b3786572ba5928d0604ae56c42733df044ea9df1de0110106d34ffb",
+    "Research/O5Bench/Sources/O5BenchCore/BenchModel.swift": "10a79e7642bea210467232b1e19c25c2f34fcdf4c12faafbeb75b5dfea31a3e8",
+    "Research/O5Bench/Sources/O5BenchCore/BenchRunner.swift": "6b3531dd36250a7ec7fbf69f54db2baa2dc7d911d6e1beb8b06b1e232b3c3ccf",
+    "Research/O5Bench/Sources/O5BenchCore/BenchStorage.swift": "b1d394685abbf8fa268ab4431a62a0e5325860b19c391b52eb351d68cde20d74",
     "Research/O5Bench/Sources/O5BenchCore/Data.swift": "d0985a07fd698d5c6bd50051c079559bfabedcd490acf731e6db2d136f6b0099",
-    "Research/O5Bench/Sources/O5BenchCore/FakeBenchTransport.swift": "8b8734ca03942be018dbc78aa005eaabcf4d8e33dfb2f1d0f1755525dbc1c02b",
+    "Research/O5Bench/Sources/O5BenchCore/FakeBenchTransport.swift": "ac3171a2e07ed9ccccca1d34c289825fa6bfc2eb46ead40b08c0b74ce9bcdeb8",
     "Research/O5Bench/Sources/O5BenchCore/O5AidResponses.swift": "dc1e351b07a23eaf10f4e0519275ccb2828da180a82709296323db82a8220b63",
     "Research/O5Bench/Sources/O5BenchCore/O5BenchReadBatchCodec.swift": "088be60843667f8efdd9db9d9544766934b2380079a0314a3ae66c3317550cd8",
     "Research/O5Bench/Sources/O5BenchCore/O5BenchSigningPolicy.swift": "e5230a754e17322f54c83b7f66dd500279e9c7b25536dcbc5dddd1005e3324f6",
     "Research/O5Bench/Sources/O5BenchCore/O5BenchView.swift": "464a655e4a6ccdf4e638cf77f826eee0888098e47b9b3c494205002478f2d39b",
-    "Research/O5Bench/Sources/O5BenchCore/O5PhysicalBenchView.swift": "d5c1b1207b91557a0d373fdf6d899e13af44d9a44472fb5b5c3dfb51e9119de8",
+    "Research/O5Bench/Sources/O5BenchCore/O5PhysicalBenchView.swift": "2502649c94c875ad734de006e46be0ef7483a695a89c927edd3e5e46f1fcca62",
     "Research/O5Bench/Sources/O5BenchCore/PhysicalBenchTransport.swift": "e6249fa49fd332a534bd1e91b428b862da7622f6ea8c588f8cc24297daac39fb",
     "Research/O5Bench/Sources/o5-bench/main.swift": "ca242671896266ec28563b401ae2de8294fd2716310c158eecf387a56a40eda9",
     "Research/O5Bench/Tests/O5BenchCoreTests/BenchRunnerTests.swift": "53497e59eb2c3a10c0dd11033ad0a078a6974f7bd0bdd4f6394985a6d617bd9c",
@@ -32,14 +32,15 @@
     "Research/O5Bench/Tests/O5BenchCoreTests/O5AidIncidentTests.swift": "35433339ccd6c232474b7fd1d14eefad95e706c38bbb08530607eda0a693212c",
     "Research/O5Bench/Tests/O5BenchCoreTests/O5AidResponsesTests.swift": "a9627747df40e4170682beb900485ea20084d400211a3da24f24a5ed3d761783",
     "Research/O5Bench/Tests/O5BenchCoreTests/O5CommLogFixtures.swift": "81dc6376a1c6549a4996b5f66a6aee7c4c3c19c95f067547e5958ccbbf01d56d",
-    "Research/O5Bench/Tests/O5BenchCoreTests/PhysicalBenchTests.swift": "286b533f733756186b02630b6545d653efee855f337b6a66cf79c524ea08d080",
-    "Research/O5Bench/Tests/O5BenchCoreTests/RetainedO5AidCommands.swift": "fa88a3b88bc05d9300ff6c30be0c18f892d2a650050e3b9df9e4bed7616dca91"
+    "Research/O5Bench/Tests/O5BenchCoreTests/PhysicalBenchTests.swift": "e92c4ea7ba78da0313261331ab73f13886728540fe1757c86c8eaf06d4f75183",
+    "Research/O5Bench/Tests/O5BenchCoreTests/RetainedO5AidCommands.swift": "fa88a3b88bc05d9300ff6c30be0c18f892d2a650050e3b9df9e4bed7616dca91",
+    "Research/O5Bench/Tests/O5BenchCoreTests/ShortScreenTests.swift": "38e7f3b45301752e1e2b040c1e4291da6cd228f8e8fba3c57f40689aff14b8c9"
   },
   "revisions": {
     "OmnipodKitBase": "363f75ae02be15ff3f2ef2b5b0a1d7fbfeebb54e",
     "TrioBase": "80b79cb0085505edce278216063d2bb2e64c7191",
     "research": "db92e426b97914ce1c80bdab45a74001a858840a",
-    "runnerSourceSHA256": "cbeac57cdd46e8c275773164990f547c9c9298fed8fd89a7afaaed803da378dc"
+    "runnerSourceSHA256": "d2faa081b499a9e068b8d2d74c28f9275e6c3711f2b81ead65133059bc4f1b4a"
   },
-  "sourceSHA256": "cbeac57cdd46e8c275773164990f547c9c9298fed8fd89a7afaaed803da378dc"
+  "sourceSHA256": "d2faa081b499a9e068b8d2d74c28f9275e6c3711f2b81ead65133059bc4f1b4a"
 }

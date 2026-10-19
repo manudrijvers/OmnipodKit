@@ -67,6 +67,59 @@ final class PhysicalBenchTests: XCTestCase {
         XCTAssertTrue(store.saved!.operations.allSatisfy { !($0.wireRecords ?? []).isEmpty })
         XCTAssertTrue(store.saved!.operations.allSatisfy { $0.signingPolicy.contains("mode 4") })
     }
+    func testShortScreenUsesActualSendCaptureAsDeadlineAnchor() throws {
+        let radio = PhysicalRadioDouble(), store = PhysicalMemoryStore()
+        radio.fake.suspended = true
+        let runner = try BenchRunner(store: store, transport: radio)
+        try runner.arm(offBodyConfirmed: true)
+        try runner.perform(.screenBaseline, baselineExport: temporary())
+        radio.beforeCapture = { requests in
+            if requests.contains(where: \.isMutation) { radio.clock.advance(25) }
+        }
+        var delayedReply = false
+        radio.afterCapture = {
+            if radio.fake.control == 0 && !delayedReply { delayedReply = true; radio.clock.advance(37) }
+        }
+        try runner.perform(.screenG7, identity: BenchIdentity(code: "0123", serial: "001234567890"))
+        XCTAssertEqual(radio.clock.elapsed, 1045)
+        let anchor = try XCTUnwrap(runner.session.events.first { $0.kind == "screen-observation-deadline" })
+        XCTAssertEqual(anchor.fields["anchor"], "actual-send-capture")
+        XCTAssertEqual(anchor.fields["sentAtMonotonic"], "145.0")
+        XCTAssertEqual(anchor.fields["deadlineMonotonic"], "1045.0")
+        XCTAssertEqual(radio.fake.sends.filter { $0.contains(where: \.isMutation) }.count, 1)
+        XCTAssertTrue(store.saved?.screenStarted == true)
+    }
+    func testShortScreenLostAckRetainsPendingBatchAndCannotReplay() throws {
+        let radio = PhysicalRadioDouble(), store = PhysicalMemoryStore()
+        radio.fake.suspended = true
+        let runner = try BenchRunner(store: store, transport: radio)
+        try runner.arm(offBodyConfirmed: true)
+        try runner.perform(.screenBaseline, baselineExport: temporary())
+        radio.afterCapture = { if radio.fake.control == 0 { radio.loseAck = true } }
+        let identity = try BenchIdentity(code: "0123", serial: "001234567890")
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
+        XCTAssertTrue(store.saved?.screenStarted == true)
+        XCTAssertEqual(store.saved?.operations.last?.outcome, "pending")
+        XCTAssertTrue(store.saved?.operations.last?.wireRecords?.contains { $0.phase == "raw-response" } == true)
+        radio.afterCapture = nil; radio.loseAck = false
+        let reopened = try BenchRunner(store: store, transport: radio)
+        try reopened.perform(.diagnostic)
+        XCTAssertThrowsError(try reopened.perform(.screenG7, identity: identity))
+        XCTAssertEqual(radio.fake.sends.filter { $0.contains(where: \.isMutation) }.count, 1)
+    }
+    func testShortScreenRechecksFreshnessAtPhysicalSendBoundary() throws {
+        let radio = PhysicalRadioDouble(), store = PhysicalMemoryStore()
+        radio.fake.suspended = true
+        let runner = try BenchRunner(store: store, transport: radio)
+        try runner.arm(offBodyConfirmed: true)
+        try runner.perform(.screenBaseline, baselineExport: temporary())
+        radio.beforeCapture = { requests in
+            if requests.contains(where: \.isMutation) { radio.clock.advance(91) }
+        }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: BenchIdentity(code: "0123", serial: "001234567890")))
+        XCTAssertTrue(radio.fake.sends.allSatisfy { !$0.contains(where: \.isMutation) })
+        XCTAssertTrue(runner.session.screenStarted == true)
+    }
     func testRawReplySurvivesLostAckAndRestartNeverReplays() throws {
         let (runner, radio, store) = try ready()
         radio.loseAck = true

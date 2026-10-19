@@ -17,6 +17,7 @@ final class FakeBenchTransport: BenchTransport {
     var manual = true
     var active = true
     var fault: UInt8 = 0
+    var suspended = false
     var egv: Int16 = 123
     var freezeSample = false
     var failAfterSend = false
@@ -65,7 +66,7 @@ final class FakeBenchTransport: BenchTransport {
     private func read(_ request: BenchRequest) throws -> Data {
         if request.kind == .legacyStatus {
             var b = [UInt8](repeating: 0, count: 22)
-            b[0] = 2; b[1] = active ? 8 : 15; b[2] = 1; b[8] = fault
+            b[0] = 2; b[1] = active ? 8 : 15; b[2] = suspended ? 0 : 1; b[8] = fault
             b[11] = 1; b[12] = 244 // 500 synthetic pulses
             let minutes = 120 + Int(clock.elapsed / 60)
             b[13] = UInt8((minutes >> 8) & 255); b[14] = UInt8(minutes & 255)

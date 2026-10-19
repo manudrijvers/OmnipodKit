@@ -11,6 +11,8 @@ enum BenchError: String, Error, LocalizedError {
     case logging = "Evidence persistence failed; further mutations are blocked."
     case interrupted = "Action interrupted; outcome is unknown and will not be replayed."
     case arguments = "Invalid command or arguments. Run o5-bench help."
+    case screening = "The short screen requires its own baseline, DEFAULT control, empty sensor identity, and suspended delivery."
+    case observationExpired = "The observation deadline elapsed before monitoring could begin; no reception conclusion is available."
     var errorDescription: String? { rawValue }
 }
 
@@ -80,6 +82,7 @@ final class BenchClock {
 
 enum BenchAction: String, Codable, CaseIterable {
     case baseline, reconnect, targetProfile, dia, enable, provision, observe, reconnectReception, diagnostic
+    case screenBaseline, screenG7
 }
 
 public struct BenchRequest: Codable, Equatable {
@@ -162,6 +165,10 @@ struct BenchSession: Codable {
     var watchFeedOK = true
     var fakeControl: UInt8 = 255
     var fakeIdentity: BenchIdentity?
+    // Optional fields preserve decoding of journals produced before this protocol.
+    var screenBaselineComplete: Bool?
+    var screenStarted: Bool?
+    var screenResult: String?
 }
 
 struct BenchSnapshot {
@@ -180,15 +187,18 @@ struct BenchLegacyStatus {
     let ageMinutes: Int
     let reservoirPulses: Int
     let alerts: UInt8
+    let deliveryStatus: UInt8
     init(_ data: Data) throws {
         let b = Array(data)
         guard b.count == 22, b[0] == 2 else { throw BenchError.reply }
         progress = b[1]; fault = b[8]
+        deliveryStatus = b[2] & 0x0f
         ageMinutes = Int(b[13]) * 256 + Int(b[14])
         reservoirPulses = Int(b[11] & 3) * 256 + Int(b[12])
         alerts = b[15]
     }
     var active: Bool { progress == 8 || progress == 9 }
+    var suspended: Bool { deliveryStatus == 0 }
 }
 
 struct BenchWireRecord: Codable {

@@ -1,5 +1,12 @@
 # Removed-Pod experiment runner
 
+**2026-10-19 short protocol:** [Short G7 screen](SHORT_G7_SCREEN.md) adds a
+separate two-minute baseline and one enable-plus-identity batch with a fixed
+15-minute post-send observation. It requires already-suspended delivery and
+DEFAULT/empty CGM state. It does not unlock the older enable/provision actions
+or claim sustained reception. The longer sequence below is retained as the
+earlier protocol; do not combine its buttons with the short screen.
+
 The physical path uses the owner's single-active-Pod workflow: physically remove
 this Pod, leave it active in Trio, run separate experiment actions, then deactivate
 and replace it normally. It uses the existing controller identity, LTK, BLE

@@ -113,7 +113,12 @@ enum BenchExport {
         }
         var manifest: [String: Any] = ["schema": 1, "experimentID": session.id,
             "synthetic": session.physical != true, "transport": session.physical == true ? "BLE" : "fake-only", "clock": session.physical == true ? "process-uptime" : "virtual; not physical elapsed observation",
-            "physicalWritesEnabled": session.physical == true && session.armed && session.locks.isEmpty && session.baselineComplete && session.reconnectComplete, "redacted": redacted,
+            "physicalWritesEnabled": session.physical == true && session.armed && session.locks.isEmpty &&
+                ((session.baselineComplete && session.reconnectComplete) || (session.screenBaselineComplete == true && session.screenStarted != true)), "redacted": redacted,
+            "protocol": session.steps.contains(where: { $0.action == .screenBaseline || $0.action == .screenG7 }) ? "short-g7-screen-v1" : "original-separate-actions",
+            "screenBaselineComplete": session.screenBaselineComplete == true,
+            "screenStarted": session.screenStarted == true,
+            "screenResult": session.screenResult ?? "not-completed",
             "revisions": session.revisions, "activationProvenance": session.activationProvenance,
             "target": redacted ? "REDACTED" : "see private-session.json",
             "locks": session.locks, "virtualElapsedSeconds": session.virtualElapsed,

@@ -35,18 +35,31 @@ public struct O5PhysicalBenchView: View {
                         .foregroundStyle(.red)
                 }
             }
-            Section("Separate actions") {
-                action("Capture baseline · 10 minutes", .baseline)
-                action("Reconnect and check baseline · 10 minutes", .reconnect)
-                action("Enable only · observe 15 minutes", .enable, mutation: true)
+            Section("Short G7 screen · about 20 minutes") {
+                Text("Use only a removed Pod whose delivery is already suspended. This experiment does not suspend delivery or change the mode. No new activation settings are written.")
+                Text("Capture a 2-minute baseline, then send enable plus sensor identity once and observe for 15 minutes from the send. Target/DIA and other setup inputs are not measured in this short protocol.")
+                action("1. Capture short baseline · 2 minutes", .screenBaseline)
                 TextField("G7 pairing code (4 characters)", text: $code)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 TextField("G7 serial (12 characters)", text: $serial)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
+                action("2. Send G7 batch once · observe 15 minutes", .screenG7, mutation: true)
+                Text("Stops on a fault or uncertain reply. No automatic retry or reconnect. A completed screen is not proof of reliable pairing.")
+                if let result = model.state?.screenResult {
+                    Text(result == "fresh-glucose-observed-in-short-window"
+                        ? "Fresh glucose observed during the short window. Reliability is not established."
+                        : "No new fresh glucose observed within the short window. Pairing may take longer.")
+                }
+                action("Diagnostic readback", .diagnostic)
+            }
+            Section("Earlier experiment · separate protocol") {
+                Text("Do not combine these actions with the short G7 screen. The earlier enable-only experiment produced E2.")
+                action("Capture baseline · 10 minutes", .baseline)
+                action("Reconnect and check baseline · 10 minutes", .reconnect)
+                action("Enable only · observe 15 minutes", .enable, mutation: true)
                 action("Provision G7", .provision, mutation: true)
                 action("Observe reception · 30 minutes", .observe)
                 action("Reconnect after reception · 10 minutes", .reconnectReception)
-                action("Diagnostic readback", .diagnostic)
             }
             Section("Independent observations") {
                 Toggle("Phone sensor feed continues", isOn: $phoneOK)
@@ -80,7 +93,11 @@ public struct O5PhysicalBenchView: View {
     private func action(_ title: String, _ action: BenchAction, mutation: Bool = false) -> some View {
         Button(title) { model.perform(action, code: code, serial: serial) }
             .disabled(model.busy || model.state == nil || (action != .diagnostic && model.state?.locks.isEmpty != true) ||
-                (mutation && (model.state?.baselineComplete != true || model.state?.reconnectComplete != true)))
+                (action != .diagnostic && action != .screenG7 && model.state?.screenBaselineComplete == true) ||
+                (action == .screenBaseline && (model.state?.baselineComplete == true || model.state?.reconnectComplete == true)) ||
+                (action == .screenG7 && (model.state?.screenBaselineComplete != true || model.state?.screenStarted == true ||
+                    !BenchIdentity.valid(code, count: 4) || !BenchIdentity.valid(serial, count: 12))) ||
+                (mutation && action != .screenG7 && (model.state?.baselineComplete != true || model.state?.reconnectComplete != true)))
     }
 }
 
@@ -162,9 +179,9 @@ private final class PhysicalBenchModel: ObservableObject {
             catch { message = error.localizedDescription; return }
         }
         run { runner in
-            let identity = action == .provision ? try BenchIdentity(code: code, serial: serial) : nil
+            let identity = (action == .provision || action == .screenG7) ? try BenchIdentity(code: code, serial: serial) : nil
             try runner.perform(action, identity: identity,
-                baselineExport: action == .baseline ? directory.appendingPathComponent("baseline-\(UUID().uuidString)") : nil)
+                baselineExport: (action == .baseline || action == .screenBaseline) ? directory.appendingPathComponent("baseline-\(UUID().uuidString)") : nil)
         }
     }
     func interrupt(_ note: String, audibleAlarm: Bool = false, observedAt: Date = Date()) {

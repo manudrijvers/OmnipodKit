@@ -1,0 +1,10 @@
+2026-10-19 short-g7-screen-v1
+
+Swift 6.2.4 container, network disabled.
+93 portable tests: 92 passed, 1 optional private incident replay skipped, 0 failures.
+Includes 14 short-screen tests and 3 additional physical-radio-double tests.
+Source stamp: d2faa081b499a9e068b8d2d74c28f9275e6c3711f2b81ead65133059bc4f1b4a
+Swift frontend syntax parsing of O5PhysicalBenchView targeting arm64-apple-ios16.0 passed.
+Syntax parsing is not Apple SDK typechecking; see exact Trio simulator CI run.
+No real Pod run, radio test or therapy validation occurred here.
+Normal setup/transport code outside the research package is unchanged.
