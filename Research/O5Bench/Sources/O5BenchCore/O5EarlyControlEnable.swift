@@ -51,7 +51,7 @@ public enum O5EarlyControlEnable {
         try FileBenchStore.write(FileBenchStore.encode(journal), to: url(store))
     }
 
-    /// Called only when a fresh PodState is created. The returned identifier must
+    /// Called only when a fresh PodState is created. The identifier must already
     /// be persisted in that PodState. Missing journals are never recreated later.
     public static func arm(id: String, target: String, firmware: String, bleFirmware: String,
                            directory: URL? = nil) throws {

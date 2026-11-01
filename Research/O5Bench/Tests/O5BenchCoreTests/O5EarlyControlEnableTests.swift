@@ -17,6 +17,7 @@ final class O5EarlyControlEnableTests: XCTestCase {
     private var reject: String?
     private var failureIndex: Int?
     private var mutationHook: (() throws -> Void)?
+    private var interfaceHook: (() throws -> Void)?
     private var ignoreWrite = false
     private var afterWrite: (() -> Void)?
 
@@ -45,7 +46,9 @@ final class O5EarlyControlEnableTests: XCTestCase {
         if failureIndex == requests.count { throw URLError(.timedOut) }
         switch String(decoding: request, as: UTF8.self) {
         case "G3.12": return aidStatus()
-        case "G4.2": return interface()
+        case "G4.2":
+            try interfaceHook?()
+            return interface()
         default:
             XCTAssertEqual(request, Data("SE4.2=".utf8) + Data([0, 2, 4, 0]))
             XCTAssertEqual(prefix, "ES4.2=")
@@ -172,9 +175,37 @@ final class O5EarlyControlEnableTests: XCTestCase {
     }
     func testJournalFailureBeforeSendPreventsWrite() throws {
         // Turn the destination into a directory before the write-intent save.
-        // Initial checking save must fail before any transport call.
+        // Loading the required journal must fail before any transport call.
         try FileManager.default.removeItem(at: file)
         try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
         XCTAssertThrowsError(try finish()); XCTAssertTrue(requests.isEmpty)
     }
+    func testPersistenceFailureAfterPrereadNeverReleasesWrite() throws {
+        let directory = file.deletingLastPathComponent()
+        interfaceHook = {
+            try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        }
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path) }
+        XCTAssertThrowsError(try finish())
+        XCTAssertTrue(writes.isEmpty)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        XCTAssertEqual(try snapshot()["phase"] as? String, "checking")
+        interfaceHook = nil
+        XCTAssertThrowsError(try finish()); XCTAssertTrue(writes.isEmpty)
+    }
+
+    func testPersistenceFailureAfterAppliedWriteRetainsDurableIntent() throws {
+        let directory = file.deletingLastPathComponent()
+        mutationHook = {
+            try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        }
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path) }
+        XCTAssertThrowsError(try finish())
+        XCTAssertEqual(control, 0); XCTAssertEqual(writes.count, 1)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        XCTAssertEqual(try snapshot()["phase"] as? String, "writePending")
+        mutationHook = nil
+        XCTAssertThrowsError(try finish()); XCTAssertEqual(writes.count, 1)
+    }
+
 }

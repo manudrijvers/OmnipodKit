@@ -709,7 +709,8 @@ extension OmniPumpManager {
 extension OmniPumpManager: DiagnosticCommands {
     func pumpManagerDetails() -> String {
         let record: String
-        if let id = state.podState?.earlyControlEnableID ?? state.previousPodState?.earlyControlEnableID {
+        let pod = state.podState ?? state.previousPodState
+        if let id = pod?.earlyControlEnableID {
             record = (try? O5EarlyControlEnable.record(id: id)) ?? "Activation record unavailable; no operation resumed"
         } else { record = "Early control enable was not armed for this Pod" }
         return debugDescription + "\n\nEarly control enable activation record:\n" + record

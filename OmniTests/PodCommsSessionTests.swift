@@ -95,7 +95,10 @@ class PodCommsSessionTests: XCTestCase, PodCommsSessionDelegate {
 
     func testMarkedCompletionCannotBypassMissingJournal() {
         let session = insertionSession(marked: true)
-        XCTAssertThrowsError(try session.checkInsertionCompleted())
+        XCTAssertThrowsError(try session.checkInsertionCompleted()) { error in
+            XCTAssertFalse(OmniPumpManagerError.communication(error).recoverable)
+            XCTAssertFalse(OmniPairingError.pumpManagerError(.communication(error as? LocalizedError)).recoverable)
+        }
         XCTAssertNotEqual(lastPodStateUpdate?.setupProgress, .completed)
         XCTAssertEqual(mockTransport.sentMessages.count, 1)
     }
