@@ -645,6 +645,9 @@ class PodCommsSession: MessageTransportDelegate {
                 try markSetupProgressCompleted(statusResponse: status)
                 return TimeInterval(0) // Already done; no need to wait
             }
+            if podState.earlyControlEnableID != nil {
+                throw PodCommsError.diagnosticMessage(str: "Cannula insertion status is unexpected; review before continuing the early control experiment")
+            }
         } else {
             let elapsed: TimeInterval = -(podState.podTimeUpdated?.timeIntervalSinceNow ?? 0)
             let podTime = podState.podTime + elapsed
@@ -678,10 +681,15 @@ class PodCommsSession: MessageTransportDelegate {
     }
 
     func checkInsertionCompleted() throws {
+        if podState.earlyControlEnableID != nil && podState.setupProgress != .cannulaInserting && podState.setupProgress != .completed {
+            throw PodCommsError.diagnosticMessage(str: "Cannula insertion has not been confirmed; early control enable is pending")
+        }
         if podState.setupProgress == .cannulaInserting {
             let response = try getStatus()
             if response.podProgressStatus.readyForDelivery {
                 try markSetupProgressCompleted(statusResponse: response)
+            } else if podState.earlyControlEnableID != nil {
+                throw PodCommsError.diagnosticMessage(str: "Cannula insertion is not finished; early control enable is pending")
             }
         }
     }

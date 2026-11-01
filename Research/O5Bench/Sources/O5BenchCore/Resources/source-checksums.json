@@ -1,16 +1,16 @@
 {
   "files": {
     "OmniTests/O5/O5AidCommandsTests.swift": "88e9ebefdeec91344b22fce0ae4797c49b0916bf0824f49e4ee79f34376660b1",
-    "OmniTests/PodCommsSessionTests.swift": "896da871426dc27f7778cd8f63e52e5532cf344accb466a5fa9109debb2098c5",
+    "OmniTests/PodCommsSessionTests.swift": "f2c0b1daf18969d4bdb3cf9acb86183d301e0d92578aad15bde8bb9f3c0a51ac",
     "OmniTests/PodStateTests.swift": "a0fcd4fe43c134290b8e0cf28724d347db2e72393eab0d8622cfc42f428f297b",
     "OmnipodKit.xcodeproj/project.pbxproj": "44ec0eaad792a5632a462ba6824fffa14a7d3af9382e9916abe74df28dca5373",
     "OmnipodKit/Bluetooth/BleMessageTransport.swift": "0b4c955c274867cd7fda95136ffbcc5a1a1ab45f11f0a100757dce940e82afa0",
     "OmnipodKit/Bluetooth/BlePodComms.swift": "c38620d66681f04dabeb68495cf3a411c9da44860a581325f77427e2358330c8",
     "OmnipodKit/Bluetooth/O5AidCommands.swift": "43100524085349b240fb6c25d80ca1fca8555c15df964e02d8998f14b60b6b05",
     "OmnipodKit/Bluetooth/PeripheralManager.swift": "dff6d543d888967d90ffeed89d6b032997460f6258b2b5979318bf8e2c3eb759",
-    "OmnipodKit/PumpManager/OmniPumpManager.swift": "22ad8aaf5970af99c147a85dc31ad7a1c729410d89081353e7a22ab3da67f6d0",
+    "OmnipodKit/PumpManager/OmniPumpManager.swift": "f06acb1e01e3a86edfb8657fd026b03ee1f6442639f02c4ad84dd40b1095f458",
     "OmnipodKit/PumpManager/OmniPumpManagerState.swift": "7a7329a9e50131ca23ad1ba8681e6c069ea830424c0d8abdf52b961e3952aa49",
-    "OmnipodKit/PumpManager/PodCommsSession.swift": "f368ee1134c2e2a613c321ca0bedd0bb3cb96c2a9877d6194694fc4624ef3826",
+    "OmnipodKit/PumpManager/PodCommsSession.swift": "56823ff35e8045b81b1575a82d872fce46fae22d424db024a7e02bdcc9199fb0",
     "OmnipodKit/PumpManager/PodState.swift": "a0a8d9e3db3822a69c0ecb01cf8cb6676d4c01f651b6695c7790913ab00bde00",
     "OmnipodKit/PumpManagerUI/ViewModels/InsertCannulaViewModel.swift": "e81f712331899ee59e08a8cc5bebc6ba07ebc6e6138e529b1cafafeb0aca6ff5",
     "OmnipodKit/PumpManagerUI/ViewModels/OmniSettingsViewModel.swift": "6261eea3477a095cc5adceaa214a7914748238d693bbb045c7a5cd6c89a77e24",
@@ -53,8 +53,8 @@
     "TrioBase": "80b79cb0085505edce278216063d2bb2e64c7191",
     "earlyControlEnableProtocol": "fresh-control-only-v1",
     "research": "db92e426b97914ce1c80bdab45a74001a858840a",
-    "runnerSourceSHA256": "b2d86d0e7f49d531bae482deedd74b9f37f43924faae4b172061d960f1cea074"
+    "runnerSourceSHA256": "81476bacf36c36a48d615dbf76cf8e5415139a11dba1f8c394cd89acd704ad66"
   },
   "sourceHashAlgorithm": "SHA256 of compact sorted JSON file-hash map",
-  "sourceSHA256": "b2d86d0e7f49d531bae482deedd74b9f37f43924faae4b172061d960f1cea074"
+  "sourceSHA256": "81476bacf36c36a48d615dbf76cf8e5415139a11dba1f8c394cd89acd704ad66"
 }

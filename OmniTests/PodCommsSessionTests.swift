@@ -64,7 +64,8 @@ class PodCommsSessionTests: XCTestCase, PodCommsSessionDelegate {
         lastPodStateUpdate = state
     }
 
-    private func insertionSession(marked: Bool, progress: SetupProgress = .cannulaInserting) -> PodCommsSession {
+    private func insertionSession(marked: Bool, progress: SetupProgress = .cannulaInserting,
+                                  responseProgress: PodProgressStatus = .aboveFiftyUnits) -> PodCommsSession {
         podState = PodState(address: address, firmwareVersion: "9.0.4", iFirmwareVersion: "5.0.2",
             lotNo: 1, lotSeq: 2, insulinType: .novolog, podType: omnipod5Type,
             ltk: fakeLtk, bleIdentifier: "test-pod")
@@ -73,7 +74,7 @@ class PodCommsSessionTests: XCTestCase, PodCommsSessionDelegate {
         // Invalid ID deliberately rejects before file I/O or any AID send.
         podState.earlyControlEnableID = marked ? "missing-activation-record" : nil
         mockTransport.addResponse(StatusResponse(deliveryStatus: .scheduledBasal,
-            podProgressStatus: .aboveFiftyUnits, timeActive: .minutes(10),
+            podProgressStatus: responseProgress, timeActive: .minutes(10),
             reservoirLevel: Pod.reservoirLevelAboveThresholdMagicNumber,
             insulinDelivered: 3.1, bolusNotDelivered: 0,
             lastProgrammingMessageSeqNum: 1, alerts: AlertSet(slots: [])))
@@ -113,6 +114,13 @@ class PodCommsSessionTests: XCTestCase, PodCommsSessionDelegate {
         let session = insertionSession(marked: true, progress: .podPaired)
         XCTAssertThrowsError(try session.prime())
         XCTAssertTrue(mockTransport.sentMessages.isEmpty)
+    }
+
+    func testMarkedInsertionStillInProgressCannotReportCompletion() {
+        let session = insertionSession(marked: true, responseProgress: .insertingCannula)
+        XCTAssertThrowsError(try session.checkInsertionCompleted())
+        XCTAssertEqual(lastPodStateUpdate?.setupProgress, .cannulaInserting)
+        XCTAssertEqual(mockTransport.sentMessages.count, 1)
     }
 
     func testBolusFinishedEarlyOnPodIsMarkedNonMutable() {

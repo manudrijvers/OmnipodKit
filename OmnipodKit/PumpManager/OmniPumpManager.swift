@@ -1319,8 +1319,10 @@ extension OmniPumpManager {
             return state.earlyControlEnableForNextPod
         }
         set {
-            guard state.podState == nil, state.podType.isO5 else { return }
-            setState { $0.earlyControlEnableForNextPod = newValue }
+            setState { state in
+                guard state.podState == nil, state.podType.isO5 else { return }
+                state.earlyControlEnableForNextPod = newValue
+            }
         }
     }
 
