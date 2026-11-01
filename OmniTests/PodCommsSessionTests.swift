@@ -64,6 +64,54 @@ class PodCommsSessionTests: XCTestCase, PodCommsSessionDelegate {
         lastPodStateUpdate = state
     }
 
+    private func insertionSession(marked: Bool, progress: SetupProgress = .cannulaInserting) -> PodCommsSession {
+        podState = PodState(address: address, firmwareVersion: "9.0.4", iFirmwareVersion: "5.0.2",
+            lotNo: 1, lotSeq: 2, insulinType: .novolog, podType: omnipod5Type,
+            ltk: fakeLtk, bleIdentifier: "test-pod")
+        podState.activatedAt = Date()
+        podState.setupProgress = progress
+        // Invalid ID deliberately rejects before file I/O or any AID send.
+        podState.earlyControlEnableID = marked ? "missing-activation-record" : nil
+        mockTransport.addResponse(StatusResponse(deliveryStatus: .scheduledBasal,
+            podProgressStatus: .aboveFiftyUnits, timeActive: .minutes(10),
+            reservoirLevel: Pod.reservoirLevelAboveThresholdMagicNumber,
+            insulinDelivered: 3.1, bolusNotDelivered: 0,
+            lastProgrammingMessageSeqNum: 1, alerts: AlertSet(slots: [])))
+        return PodCommsSession(podState: podState, transport: mockTransport, delegate: self)
+    }
+
+    func testUnarmedInsertionCompletionKeepsExistingBehavior() throws {
+        try insertionSession(marked: false).checkInsertionCompleted()
+        XCTAssertEqual(lastPodStateUpdate?.setupProgress, .completed)
+        XCTAssertEqual(mockTransport.sentMessages.count, 1)
+    }
+
+    func testUnarmedInsertionRecoveryKeepsExistingBehavior() throws {
+        let duration = try insertionSession(marked: false, progress: .startingInsertCannula).insertCannula(silent: false)
+        XCTAssertEqual(duration, 0)
+        XCTAssertEqual(lastPodStateUpdate?.setupProgress, .completed)
+        XCTAssertEqual(mockTransport.sentMessages.count, 1)
+    }
+
+    func testMarkedCompletionCannotBypassMissingJournal() {
+        let session = insertionSession(marked: true)
+        XCTAssertThrowsError(try session.checkInsertionCompleted())
+        XCTAssertNotEqual(lastPodStateUpdate?.setupProgress, .completed)
+        XCTAssertEqual(mockTransport.sentMessages.count, 1)
+    }
+
+    func testMarkedRecoveryCannotInsertAgainWithMissingJournal() {
+        let session = insertionSession(marked: true, progress: .startingInsertCannula)
+        XCTAssertThrowsError(try session.insertCannula(silent: false))
+        XCTAssertTrue(mockTransport.sentMessages.isEmpty)
+    }
+
+    func testMarkedPrimeCannotStartWithMissingJournal() {
+        let session = insertionSession(marked: true, progress: .podPaired)
+        XCTAssertThrowsError(try session.prime())
+        XCTAssertTrue(mockTransport.sentMessages.isEmpty)
+    }
+
     func testBolusFinishedEarlyOnPodIsMarkedNonMutable() {
          let mockStart = Date()
          podState.unfinalizedBolus = UnfinalizedDose(bolusAmount: 4.45, startTime: mockStart, scheduledCertainty: .certain, insulinType: .novolog)

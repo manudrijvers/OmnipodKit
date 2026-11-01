@@ -48,6 +48,13 @@ struct PairPodView: View {
                     .disabled(viewModel.state.instructionsDisabled)
                 }
                 .padding(.bottom, 8)
+                if viewModel.podType.isO5 {
+                    Toggle("Experimental: enable control during activation", isOn: $viewModel.earlyControlEnable)
+                        .disabled(viewModel.podIsActivated || viewModel.state.isProcessing)
+                    Text("For firmware 9.0.4 / BLE 5.0.2. Enables control after insertion while staying in Manual mode. Sensor pairing happens separately. This experiment may fault the Pod.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
             }
             .accessibility(sortPriority: 1)
         }) {

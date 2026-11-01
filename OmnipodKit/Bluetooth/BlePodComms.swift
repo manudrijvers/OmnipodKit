@@ -185,7 +185,7 @@ class BlePodComms: PodComms {
 
     // Handles negotiating the LTK (if needed), establishing the session and transport,
     // running the AssignVesion command, and then creating the PodState for the pod.
-    private func pairPod(insulinType: InsulinType) throws {
+    private func pairPod(insulinType: InsulinType, earlyControlEnable: Bool) throws {
         // We should already be holding podStateLock during calls to this function, so try() should fail
         assert(!podStateLock.try(), "\(#function) should be invoked while holding podStateLock")
 
@@ -245,6 +245,7 @@ class BlePodComms: PodComms {
         // Now create the real PodState using the current transport state and the versionResponse info
         log.bleDebug("@@@ pairPod: creating PodState for versionResponse %{public}@ and transport state %{public}@", String(describing: versionResponse), transport.state.inlineDescription)
 
+        let earlyControlEnableID = podType.isO5 && earlyControlEnable ? UUID().uuidString : nil
         self.podState = PodState(
             address: podId,
             firmwareVersion: String(describing: versionResponse.firmwareVersion),
@@ -253,11 +254,20 @@ class BlePodComms: PodComms {
             lotSeq: versionResponse.tid,
             insulinType: insulinType,
             podType: versionResponse.podType,
+            earlyControlEnableID: earlyControlEnableID,
             bleMessageTransportState: transport.state,
             ltk: ltk,
             bleIdentifier: manager.peripheral.identifier.uuidString,
             signingKey: signingKey,
         )
+
+        if let id = earlyControlEnableID {
+            // The marker is already in the published PodState. A failed record
+            // creation must stop rather than silently skip the opt-in.
+            let state = self.podState!
+            try O5EarlyControlEnable.arm(id: id, target: state.earlyControlTarget,
+                firmware: state.firmwareVersion, bleFirmware: state.iFirmwareVersion)
+        }
 
         // podState setupProgress state should be addressAssigned
 
@@ -579,6 +589,7 @@ class BlePodComms: PodComms {
         timeZone: TimeZone,
         insulinType: InsulinType,
         messageLogger: MessageLogger?,
+        earlyControlEnable: Bool = false,
         _ block: @escaping (_ result: SessionRunResult) -> Void
     ) {
         guard let manager = manager else {
@@ -603,7 +614,7 @@ class BlePodComms: PodComms {
                     // Fresh pod: full pairing sequence (HELLO + LTK + EAP-AKA)
                     try manager.sendHello(myId: myId)
                     try manager.enableNotifications() // Seemingly this cannot be done before the hello command, or the pod disconnects
-                    try pairPod(insulinType: insulinType)
+                    try pairPod(insulinType: insulinType, earlyControlEnable: earlyControlEnable)
                 } else if !needsSessionEstablishment,
                           let ck = podState?.bleMessageTransportState.ck,
                           !ck.isEmpty {
@@ -620,6 +631,18 @@ class BlePodComms: PodComms {
                 guard podState != nil else {
                     block(.failure(PodCommsError.noPodPaired))
                     return
+                }
+
+                if let id = podState!.earlyControlEnableID {
+                    do {
+                        try O5EarlyControlEnable.check(id: id, target: podState!.earlyControlTarget,
+                            firmware: podState!.firmwareVersion, bleFirmware: podState!.iFirmwareVersion)
+                    } catch {
+                        // Stop before priming/insertion on an unsupported target or
+                        // missing record. Normal deactivation remains available.
+                        podState!.setupProgress = .podIncompatible
+                        throw PodCommsError.podIncompatible(str: error.localizedDescription)
+                    }
                 }
 
                 // The O5 specific AID setup commands must be done

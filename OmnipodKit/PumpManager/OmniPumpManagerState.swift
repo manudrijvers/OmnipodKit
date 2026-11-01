@@ -19,6 +19,8 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
 
     var isOnboarded: Bool = false
 
+    var earlyControlEnableForNextPod: Bool = false
+
     // XXX still needs be declared public with the current Trio implementation
     private(set) public var podState: PodState?
 
@@ -300,6 +302,8 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
             podId: podId
         )
 
+        self.earlyControlEnableForNextPod = rawValue["earlyControlEnableForNextPod"] as? Bool ?? false
+
         if let rawUnstoredDoses = rawValue["unstoredDoses"] as? [UnfinalizedDose.RawValue] {
             self.unstoredDoses = rawUnstoredDoses.compactMap( { UnfinalizedDose(rawValue: $0) } )
         } else {
@@ -377,6 +381,7 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
     public var rawValue: RawValue {
         var value: [String : Any] = [
             "isOnboarded": isOnboarded,
+            "earlyControlEnableForNextPod": earlyControlEnableForNextPod,
             "timeZone": timeZone.secondsFromGMT(),
             "basalSchedule": basalSchedule.rawValue,
             "unstoredDoses": unstoredDoses.map { $0.rawValue },

@@ -1312,6 +1312,18 @@ extension OmniPumpManager {
 
     // MARK: - Pairing
 
+    var earlyControlEnableForNextPod: Bool {
+        get {
+            guard state.podType.isO5 else { return false }
+            if let pod = state.podState { return pod.earlyControlEnableID != nil }
+            return state.earlyControlEnableForNextPod
+        }
+        set {
+            guard state.podState == nil, state.podType.isO5 else { return }
+            setState { $0.earlyControlEnableForNextPod = newValue }
+        }
+    }
+
     // Called on the main thread
     func pairAndPrime(completion: @escaping (PumpManagerResult<TimeInterval>) -> Void) {
 
@@ -1409,7 +1421,8 @@ extension OmniPumpManager {
 
         // Common code that invokes blePairAndSetupPod and then a primingSession if successful
         func blePairSetupPrimePod(blePodComms: BlePodComms) {
-            blePodComms.blePairAndSetupPod(timeZone: .currentFixed, insulinType: insulinType, messageLogger: self) { (result) in
+            blePodComms.blePairAndSetupPod(timeZone: .currentFixed, insulinType: insulinType, messageLogger: self,
+                earlyControlEnable: self.earlyControlEnableForNextPod) { (result) in
                 switch result {
                 case .success:
                     // Calls completion
@@ -3446,6 +3459,7 @@ extension OmniPumpManager: PodCommsDelegate {
                 let newAlerts: AlertSet = podState.activeAlertSlots
 
                 state.updatePodStateFromPodComms(podState)
+                state.earlyControlEnableForNextPod = false
 
                 return (newFault, oldAlerts, newAlerts)
             }

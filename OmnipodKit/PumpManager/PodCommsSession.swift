@@ -452,6 +452,7 @@ class PodCommsSession: MessageTransportDelegate {
 
     // Returns time at which prime is expected to finish.
     func prime() throws -> TimeInterval {
+        try checkEarlyControlAdmission()
         let primeDuration: TimeInterval = .seconds(Pod.primeUnits / Pod.primeDeliveryRate) + 3 // as per PDM
 
         // If priming has never been attempted on this pod, handle the pre-prime setup tasks.
@@ -595,8 +596,26 @@ class PodCommsSession: MessageTransportDelegate {
         }
     }
 
-    private func markSetupProgressCompleted(statusResponse: StatusResponse) {
+    private func checkEarlyControlAdmission() throws {
+        if let id = podState.earlyControlEnableID {
+            try O5EarlyControlEnable.check(id: id, target: podState.earlyControlTarget,
+                firmware: podState.firmwareVersion, bleFirmware: podState.iFirmwareVersion)
+        }
+    }
+
+    private func markSetupProgressCompleted(statusResponse: StatusResponse) throws {
         if (podState.setupProgress != .completed) {
+            if let id = podState.earlyControlEnableID {
+                assertOnSessionQueue()
+                guard podState.podType.isO5, statusResponse.podProgressStatus.readyForDelivery,
+                      podState.fault == nil, podState.unacknowledgedCommand == nil else {
+                    throw PodCommsError.diagnosticMessage(str: "Early control enable requires completed insertion and no pending command or fault")
+                }
+                try O5EarlyControlEnable.finish(id: id, target: podState.earlyControlTarget,
+                    firmware: podState.firmwareVersion, bleFirmware: podState.iFirmwareVersion,
+                    send: { try self.sendO5AidCommand((data: $0, responsePrefix: $1)) },
+                    detailedStatus: { try self.getDetailedStatus().data })
+            }
             podState.setupProgress = .completed
             podState.setupUnitsDelivered = statusResponse.insulinDelivered // stash the current insulin delivered value as the baseline
             log.info("Total setup units delivered: %@", String(describing: statusResponse.insulinDelivered))
@@ -604,6 +623,9 @@ class PodCommsSession: MessageTransportDelegate {
     }
 
     func insertCannula(basalSchedule: BasalSchedule? = nil, scheduleOffset: TimeInterval = 0, optionalAlerts: [PodAlert] = [], silent: Bool) throws -> TimeInterval {
+
+        try checkEarlyControlAdmission()
+        if podState.earlyControlEnableID != nil && podState.setupProgress == .completed { return 0 }
 
         let cannulaInsertionUnits = Pod.cannulaInsertionUnits + Pod.cannulaInsertionUnitsExtra
 
@@ -620,7 +642,7 @@ class PodCommsSession: MessageTransportDelegate {
                 return (status.bolusNotDelivered / Pod.primeDeliveryRate) + 1
             }
             if status.podProgressStatus.readyForDelivery {
-                markSetupProgressCompleted(statusResponse: status)
+                try markSetupProgressCompleted(statusResponse: status)
                 return TimeInterval(0) // Already done; no need to wait
             }
         } else {
@@ -659,7 +681,7 @@ class PodCommsSession: MessageTransportDelegate {
         if podState.setupProgress == .cannulaInserting {
             let response = try getStatus()
             if response.podProgressStatus.readyForDelivery {
-                markSetupProgressCompleted(statusResponse: response)
+                try markSetupProgressCompleted(statusResponse: response)
             }
         }
     }
