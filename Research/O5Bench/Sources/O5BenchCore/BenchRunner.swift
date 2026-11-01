@@ -80,7 +80,9 @@ final class BenchRunner {
 
     func markAlarm(note: String, observedAt: Date = Date()) throws {
         mutex.lock(); defer { mutex.unlock() }
-        session.locks.append("operator-observed-alarm")
+        // Repeated taps describe the same first alarm observation, not new onsets.
+        guard !session.events.contains(where: { $0.kind == "operator-audible-alarm" }) else { return }
+        if !session.locks.contains("operator-observed-alarm") { session.locks.append("operator-observed-alarm") }
         try event("operator-audible-alarm", ["note": note, "softwareFaultDetection": "independent", "operatorObservedUTC": ISO8601DateFormatter().string(from: observedAt)])
     }
 
@@ -130,8 +132,29 @@ final class BenchRunner {
                 // Persist one-shot intent before any possible mutation. A failure or
                 // process restart cannot turn this into another enable/identity send.
                 try event("screen-one-shot-armed", ["protocol": "short-g7-screen-v1"])
-                _ = try exchange([.enable, .identity(identity)], group: "short-g7-enable-identity-batch",
-                    expected: "both canonical results; matching readback; 900s bounded screening, no stability claim")
+                do {
+                    _ = try exchange([.enable, .identity(identity)], group: "short-g7-enable-identity-batch",
+                        expected: "both canonical results; matching readback; 900s bounded screening, no stability claim")
+                } catch {
+                    // A reply rejection/parse failure or a transport-uncertain write
+                    // may already have changed the Pod. Lock writes before reading.
+                    // Simulated process death, storage failure and pre-send gates
+                    // must not start a new action or reset a stopped connection.
+                    guard !captureFailed,
+                          error as? BenchError == .reply || session.locks.contains("mutation-outcome-unknown"),
+                          let operation = session.operations.last,
+                          operation.requests.contains(where: \.isMutation),
+                          let preparedSend = operation.sendStarted else { throw error }
+                    let sentAt = operation.wireRecords?.first(where: { $0.phase.hasPrefix("aid-send") })?.time.monotonic
+                        ?? preparedSend.monotonic
+                    session.armed = false
+                    session.locks.append("screen-write-unconfirmed; diagnostic observation only")
+                    try event("screen-write-unconfirmed", ["operationID": operation.id,
+                        "outcome": operation.outcome, "deadlineMonotonic": String(sentAt + 900),
+                        "interpretation": "no configuration or pairing conclusion; no further writes or explicit reconnect step"])
+                    try observeUnconfirmedScreenWrite(until: sentAt + 900)
+                    throw BenchError.screenWriteUnconfirmed
+                }
                 guard let operation = session.operations.last, let preparedSend = operation.sendStarted else {
                     throw BenchError.logging
                 }
@@ -437,6 +460,30 @@ final class BenchRunner {
             try persist()
         }
         return value
+    }
+
+    /// Capture delayed effects of the one attempted batch without requiring the
+    /// rejected identity/control state to match. Never retries or clears locks.
+    private func observeUnconfirmedScreenWrite(until deadline: Double) throws {
+        guard clock.elapsed < deadline else { throw BenchError.observationExpired }
+        while clock.elapsed < deadline {
+            guard !captureFailed, session.phoneFeedOK, session.watchFeedOK else { throw BenchError.blocked }
+            try checkTarget()
+            guard clock.elapsed < deadline else { break }
+            _ = try readSnapshot(group: "unconfirmed-screen-write-readback")
+            try checkpoint?("unconfirmed-screen-observation-sample")
+            if clock.elapsed >= deadline { break }
+            let next = min(clock.elapsed + 60, deadline)
+            while clock.elapsed < next {
+                try checkTarget()
+                guard session.phoneFeedOK, session.watchFeedOK else { throw BenchError.blocked }
+                let remaining = next - clock.elapsed
+                if remaining > 0 { clock.advance(min(transport.physical ? 1 : 60, remaining)) }
+            }
+            try checkpoint?("unconfirmed-screen-observation-wake")
+        }
+        try event("unconfirmed-screen-observation-finished", ["deadlineMonotonic": String(deadline),
+            "interpretation": "diagnostic capture only; original mutation outcome remains unchanged"])
     }
 
     private func observe(seconds: Double, requireEnable: Bool, startedAt: Double? = nil) throws -> (count: Int, sustained: Bool, enabledThroughout: Bool) {

@@ -130,6 +130,93 @@ final class ShortScreenTests: XCTestCase {
         XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
         XCTAssertFalse(runner.session.configurationConfirmed)
     }
+    func testPartialSuccessMinus18StillRecordsDelayedE2AndNeverReplays() throws {
+        let (runner, fake, store) = try setup()
+        fake.rejectMember = 1
+        fake.overrideBatchReply = Data("ES4.2=0,ES4.1=-18".utf8)
+        fake.onSend = { if fake.clock.elapsed >= 420 { fake.fault = 0xe2 } }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
+        XCTAssertEqual(fake.clock.elapsed, 420)
+        XCTAssertTrue(runner.session.events.contains { $0.kind == "status" && $0.fields["fault"] == "226" })
+        XCTAssertTrue(runner.session.operations.contains { $0.group == "unconfirmed-screen-write-readback" })
+        XCTAssertFalse(runner.session.armed)
+        XCTAssertFalse(runner.session.configurationConfirmed)
+        XCTAssertNil(runner.session.screenResult)
+        let mutation = try XCTUnwrap(store.saved?.operations.first { $0.applicationBatch != nil })
+        XCTAssertEqual(mutation.replies, [Data("ES4.2=0,ES4.1=-18".utf8)])
+        XCTAssertEqual(mutation.memberResults, ["canonical-success", "rejected-or-malformed"])
+        XCTAssertEqual(mutation.outcome, "rejected-or-malformed; mutation chain stopped")
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
+        XCTAssertThrowsError(try runner.perform(.provision, identity: identity))
+        XCTAssertEqual(writes(fake).count, 1)
+        XCTAssertEqual(fake.reconnectCount, 0)
+    }
+    func testRejectedWriteObservationEndsAtOriginalDeadlineWithoutSuccess() throws {
+        let (runner, fake, _) = try setup()
+        fake.rejectMember = 1
+        fake.onSend = { if self.writes(fake).count == 1 && fake.control == 255 { fake.clock.advance(137) } }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
+        XCTAssertEqual(fake.clock.elapsed, 1020)
+        XCTAssertNil(runner.session.screenResult)
+        XCTAssertFalse(runner.session.configurationConfirmed)
+        XCTAssertEqual(writes(fake).count, 1)
+        XCTAssertTrue(runner.session.events.contains { $0.kind == "unconfirmed-screen-observation-finished" })
+        XCTAssertTrue(runner.session.operations.filter { $0.group == "unconfirmed-screen-write-readback" }
+            .allSatisfy { ($0.sendStarted?.monotonic ?? .infinity) < 1020 })
+    }
+    func testLateWakeDoesNotScheduleReadAtOrAfterDeadline() throws {
+        let (runner, fake, _) = try setup()
+        fake.rejectMember = 1
+        runner.checkpoint = { stage in
+            if stage == "unconfirmed-screen-observation-wake" { fake.clock.advance(1000) }
+        }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
+        XCTAssertGreaterThan(fake.clock.elapsed, 1020)
+        let reads = runner.session.operations.filter { $0.group == "unconfirmed-screen-write-readback" }
+        XCTAssertEqual(reads.count, 1)
+        XCTAssertTrue(reads.allSatisfy { ($0.sendStarted?.monotonic ?? .infinity) < 1020 })
+        XCTAssertTrue(runner.session.events.contains { $0.kind == "unconfirmed-screen-observation-finished" })
+        XCTAssertEqual(writes(fake).count, 1)
+    }
+    func testPendingAlarmPreservesFirstTapWhileBusyAndDominatesGenericStop() throws {
+        let first = BenchInterruption(note: "first alarm", alarm: true, time: Date(timeIntervalSince1970: 1000))
+        let later = BenchInterruption(note: "repeated alarm", alarm: true, time: first.time.addingTimeInterval(5))
+        let stop = BenchInterruption(note: "screen closed", alarm: false, time: first.time.addingTimeInterval(10))
+        let pending = first.merging(later).merging(stop)
+        XCTAssertEqual(pending.note, first.note)
+        XCTAssertEqual(pending.time, first.time)
+        XCTAssertTrue(pending.alarm)
+        XCTAssertEqual(stop.merging(first).time, first.time)
+        let (runner, _, _) = try setup()
+        try runner.markAlarm(note: pending.note, observedAt: pending.time)
+        XCTAssertEqual(runner.session.events.first { $0.kind == "operator-audible-alarm" }?.fields["operatorObservedUTC"],
+            ISO8601DateFormatter().string(from: first.time))
+    }
+    func testRejectedWriteReadFailureDoesNotRetryOrContinueWindow() throws {
+        let (runner, fake, _) = try setup()
+        fake.rejectMember = 1
+        fake.overrideReply = { request, reply in
+            request == .get("4.2") && fake.control == 0 ? Data("bad".utf8) : reply
+        }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
+        XCTAssertEqual(fake.clock.elapsed, 120)
+        XCTAssertEqual(runner.session.operations.filter { $0.group == "unconfirmed-screen-write-readback" }.count, 1)
+        XCTAssertEqual(writes(fake).count, 1)
+        XCTAssertEqual(fake.reconnectCount, 0)
+    }
+    func testAlarmKeepsFirstOperatorTimeAndOnlyOneMarkerAcrossReopen() throws {
+        let (runner, fake, store) = try setup()
+        let first = Date(timeIntervalSince1970: 1000)
+        try runner.markAlarm(note: "first", observedAt: first)
+        try runner.markAlarm(note: "repeat", observedAt: first.addingTimeInterval(5))
+        let reopened = try BenchRunner(store: store, transport: fake)
+        try reopened.markAlarm(note: "repeat after reopen", observedAt: first.addingTimeInterval(10))
+        let events = reopened.session.events.filter { $0.kind == "operator-audible-alarm" }
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.fields["note"], "first")
+        XCTAssertEqual(events.first?.fields["operatorObservedUTC"], ISO8601DateFormatter().string(from: first))
+        XCTAssertEqual(reopened.session.locks.filter { $0 == "operator-observed-alarm" }.count, 1)
+    }
     func testMismatchedIdentityReadbackCannotComplete() throws {
         let (runner, fake, _) = try setup()
         fake.overrideReply = { request, normal in

@@ -569,6 +569,8 @@ class BlePodMessageTransport: MessageTransport {
                     String(describing: decrypted.type), decrypted.sequenceNumber, decrypted.payload.count,
                     decrypted.payload.hexadecimalString, String(data: decrypted.payload, encoding: .utf8) ?? "<non-ascii>", responsePrefix)
 
+        messageLogger?.didReceive(decrypted.payload)
+
         // Extract response data using the caller-provided response prefix.
         // AID responses use plain ASCII key=value format (no SLPE length prefix),
         // so we just strip the prefix and return everything after it.
@@ -583,7 +585,6 @@ class BlePodMessageTransport: MessageTransport {
 
         log.default("O5 AID Recv (%{public}d bytes): %{public}@",
                      responseData.count, responseData.hexadecimalString)
-        messageLogger?.didReceive(responseData)
 
         // Send ACK
         incrementMsgSeq()

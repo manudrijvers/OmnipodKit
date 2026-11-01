@@ -12,8 +12,22 @@ enum BenchError: String, Error, LocalizedError {
     case interrupted = "Action interrupted; outcome is unknown and will not be replayed."
     case arguments = "Invalid command or arguments. Run o5-bench help."
     case screening = "The short screen requires its own baseline, DEFAULT control, empty sensor identity, and suspended delivery."
+    case screenWriteUnconfirmed = "The G7 write was not confirmed. Further writes are locked; read-only observations were saved. Inspect the results and export."
     case observationExpired = "The observation deadline elapsed before monitoring could begin; no reception conclusion is available."
     var errorDescription: String? { rawValue }
+}
+
+/// Pending UI observations can arrive while the serialized runner is busy.
+/// Preserve the first alarm timestamp and never replace an alarm with a generic stop.
+struct BenchInterruption {
+    let note: String
+    let alarm: Bool
+    let time: Date
+
+    func merging(_ newer: Self) -> Self {
+        if alarm != newer.alarm { return alarm ? self : newer }
+        return time <= newer.time ? self : newer
+    }
 }
 
 public struct BenchTarget: Codable, Equatable {

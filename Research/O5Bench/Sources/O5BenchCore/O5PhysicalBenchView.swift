@@ -44,7 +44,7 @@ public struct O5PhysicalBenchView: View {
                 TextField("G7 serial (12 characters)", text: $serial)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 action("2. Send G7 batch once · observe 15 minutes", .screenG7, mutation: true)
-                Text("Stops on a fault or uncertain reply. No automatic retry or reconnect. A completed screen is not proof of reliable pairing.")
+                Text("If the write is rejected or its result is unknown, this experiment sends no further settings. Read-only recording continues until 15 minutes after the write was sent, a fault, a read error, or you tap Stop. Reads may reconnect to the Pod. Completing the recording does not prove reliable pairing.")
                 if let result = model.state?.screenResult {
                     Text(result == "fresh-glucose-observed-in-short-window"
                         ? "Fresh glucose observed during the short window. Reliability is not established."
@@ -111,7 +111,7 @@ private final class PhysicalBenchModel: ObservableObject {
     private var runner: BenchRunner?
     private var connection: O5PhysicalBenchConnection?
     private var directory: URL?
-    private var interruption: (note: String, alarm: Bool, time: Date)?
+    private var interruption: BenchInterruption?
     private var pendingFeed: (phone: Bool, watch: Bool)?
     init(open: @escaping () throws -> O5PhysicalBenchConnection) { opener = open }
 
@@ -126,9 +126,7 @@ private final class PhysicalBenchModel: ObservableObject {
                 let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                     appropriateFor: nil, create: true).appendingPathComponent("O5Bench/Physical/\(connection.sessionID)")
                 let runner = try BenchRunner(store: FileBenchStore(directory: root), transport: connection,
-                    revisions: BenchBuild.revisions.merging([
-                        "hostBuild": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-                    ]) { _, current in current })
+                    revisions: BenchBuild.revisions)
                 if runner.session.locks.isEmpty { try runner.arm(offBodyConfirmed: true) }
                 return (connection, runner, root)
             }
@@ -188,7 +186,11 @@ private final class PhysicalBenchModel: ObservableObject {
         guard runner != nil || busy else { return }
         UIApplication.shared.isIdleTimerDisabled = false
         connection?.stop()
-        if busy { interruption = (note, audibleAlarm, observedAt); message = "Stopping; preserving any uncertain command outcome…" }
+        if busy {
+            let observation = BenchInterruption(note: note, alarm: audibleAlarm, time: observedAt)
+            interruption = interruption?.merging(observation) ?? observation
+            message = "Stopping; preserving any uncertain command outcome…"
+        }
         else { run { if audibleAlarm { try $0.markAlarm(note: note, observedAt: observedAt) } else { try $0.stop(reason: note, observedAt: observedAt) } } }
     }
     func feed(_ phone: Bool, _ watch: Bool) {

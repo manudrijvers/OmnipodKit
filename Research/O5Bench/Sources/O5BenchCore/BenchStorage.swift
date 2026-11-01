@@ -113,6 +113,19 @@ enum BenchExport {
         }
         var manifest: [String: Any] = ["schema": 1, "experimentID": session.id,
             "synthetic": session.physical != true, "transport": session.physical == true ? "BLE" : "fake-only", "clock": session.physical == true ? "process-uptime" : "virtual; not physical elapsed observation",
+            "clockMetadata": [
+                "elapsedField": "monotonicSeconds",
+                "elapsedScope": session.physical == true
+                    ? "one BenchClock instance; compare only stamps with the same clockID"
+                    : "virtual clock; not measured physical duration",
+                "physicalReopen": "elapsed restored from saved virtualElapsed; missing wall interval excluded; timed action not resumed",
+                "epochField": "clockID",
+                "epochMeaning": "BenchClock instance identifier; not a process or boot identifier",
+                "uptimeField": "processUptimeSeconds",
+                "uptimeSource": "ProcessInfo.processInfo.systemUptime; boot epoch not recorded",
+                "wallField": "wallUTC",
+                "wallPrecision": "whole-second ISO8601; clock adjustments not detected"
+            ],
             "physicalWritesEnabled": session.physical == true && session.armed && session.locks.isEmpty &&
                 ((session.baselineComplete && session.reconnectComplete) || (session.screenBaselineComplete == true && session.screenStarted != true)), "redacted": redacted,
             "protocol": session.steps.contains(where: { $0.action == .screenBaseline || $0.action == .screenG7 }) ? "short-g7-screen-v1" : "original-separate-actions",

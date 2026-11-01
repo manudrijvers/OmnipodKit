@@ -99,13 +99,49 @@ final class PhysicalBenchTests: XCTestCase {
         let identity = try BenchIdentity(code: "0123", serial: "001234567890")
         XCTAssertThrowsError(try runner.perform(.screenG7, identity: identity))
         XCTAssertTrue(store.saved?.screenStarted == true)
-        XCTAssertEqual(store.saved?.operations.last?.outcome, "pending")
-        XCTAssertTrue(store.saved?.operations.last?.wireRecords?.contains { $0.phase == "raw-response" } == true)
+        let mutation = try XCTUnwrap(store.saved?.operations.first { $0.applicationBatch != nil })
+        XCTAssertEqual(mutation.outcome, "pending")
+        XCTAssertTrue(mutation.wireRecords?.contains { $0.phase == "raw-response" } == true)
         radio.afterCapture = nil; radio.loseAck = false
         let reopened = try BenchRunner(store: store, transport: radio)
         try reopened.perform(.diagnostic)
         XCTAssertThrowsError(try reopened.perform(.screenG7, identity: identity))
         XCTAssertEqual(radio.fake.sends.filter { $0.contains(where: \.isMutation) }.count, 1)
+    }
+    func testUncertainWriteContinuesReadsButPreservesPendingMutation() throws {
+        let radio = PhysicalRadioDouble(), store = PhysicalMemoryStore()
+        radio.fake.suspended = true
+        let runner = try BenchRunner(store: store, transport: radio)
+        try runner.arm(offBodyConfirmed: true)
+        try runner.perform(.screenBaseline, baselineExport: temporary())
+        radio.beforeCapture = { requests in radio.loseAck = requests.contains(where: \.isMutation) }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: BenchIdentity(code: "0123", serial: "001234567890")))
+        XCTAssertEqual(radio.clock.elapsed, 1020)
+        let mutation = try XCTUnwrap(store.saved?.operations.first { $0.applicationBatch != nil })
+        XCTAssertEqual(mutation.outcome, "pending")
+        XCTAssertTrue(runner.session.locks.contains("mutation-outcome-unknown"))
+        XCTAssertTrue(runner.session.operations.contains { $0.group == "unconfirmed-screen-write-readback" })
+        XCTAssertFalse(runner.session.configurationConfirmed)
+        XCTAssertNil(runner.session.screenResult)
+        XCTAssertEqual(radio.fake.sends.filter { $0.contains(where: \.isMutation) }.count, 1)
+        XCTAssertEqual(radio.fake.reconnectCount, 0)
+    }
+    func testRejectedWriteCancellationStopsReadOnlyPollingWithoutResettingAccess() throws {
+        let radio = PhysicalRadioDouble(), store = PhysicalMemoryStore()
+        radio.fake.suspended = true
+        let runner = try BenchRunner(store: store, transport: radio)
+        try runner.arm(offBodyConfirmed: true)
+        try runner.perform(.screenBaseline, baselineExport: temporary())
+        radio.fake.rejectMember = 1
+        runner.checkpoint = { stage in
+            if stage == "unconfirmed-screen-observation-sample" { radio.access = false }
+        }
+        XCTAssertThrowsError(try runner.perform(.screenG7, identity: BenchIdentity(code: "0123", serial: "001234567890")))
+        XCTAssertEqual(radio.clock.elapsed, 120)
+        XCTAssertFalse(radio.access)
+        XCTAssertEqual(runner.session.operations.filter { $0.group == "unconfirmed-screen-write-readback" }.count, 1)
+        XCTAssertEqual(radio.fake.sends.filter { $0.contains(where: \.isMutation) }.count, 1)
+        XCTAssertEqual(radio.fake.reconnectCount, 0)
     }
     func testShortScreenRechecksFreshnessAtPhysicalSendBoundary() throws {
         let radio = PhysicalRadioDouble(), store = PhysicalMemoryStore()
