@@ -208,4 +208,14 @@ final class O5EarlyControlEnableTests: XCTestCase {
         XCTAssertThrowsError(try finish()); XCTAssertEqual(writes.count, 1)
     }
 
+    func testVerifiedRecordPermitsReadRecoveryButRejectsRepeatedPhysicalSetup() throws {
+        try O5EarlyControlEnable.check(id: id, target: "pod-A", firmware: "9.0.4", bleFirmware: "5.0.2",
+            requireArmed: true, directory: root)
+        try finish()
+        try O5EarlyControlEnable.check(id: id, target: "pod-A", firmware: "9.0.4", bleFirmware: "5.0.2", directory: root)
+        XCTAssertThrowsError(try O5EarlyControlEnable.check(id: id, target: "pod-A", firmware: "9.0.4", bleFirmware: "5.0.2",
+            requireArmed: true, directory: root))
+        XCTAssertEqual(writes.count, 1)
+    }
+
 }

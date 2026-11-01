@@ -66,10 +66,13 @@ public enum O5EarlyControlEnable {
     /// Read-only preflight before priming/insertion. A restored Pod marker with a
     /// missing or interrupted record cannot start the physical activation work.
     public static func check(id: String, target: String, firmware: String, bleFirmware: String,
-                             directory: URL? = nil) throws {
+                             requireArmed: Bool = false, directory: URL? = nil) throws {
         do {
             let lease = try store(id, directory)
-            _ = try admitted(lease, id: id, target: target, firmware: firmware, bleFirmware: bleFirmware)
+            let journal = try admitted(lease, id: id, target: target, firmware: firmware, bleFirmware: bleFirmware)
+            guard !requireArmed || journal.phase == "armed" else {
+                throw Stopped(reason: "control was already verified; physical setup must not be repeated")
+            }
         } catch let error as Stopped { throw error }
         catch { throw Stopped(reason: "activation record unavailable: \(error.localizedDescription)") }
     }

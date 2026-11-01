@@ -452,7 +452,7 @@ class PodCommsSession: MessageTransportDelegate {
 
     // Returns time at which prime is expected to finish.
     func prime() throws -> TimeInterval {
-        try checkEarlyControlAdmission()
+        try checkEarlyControlAdmission(requireArmed: true)
         let primeDuration: TimeInterval = .seconds(Pod.primeUnits / Pod.primeDeliveryRate) + 3 // as per PDM
 
         // If priming has never been attempted on this pod, handle the pre-prime setup tasks.
@@ -501,6 +501,7 @@ class PodCommsSession: MessageTransportDelegate {
     }
 
     func programInitialBasalSchedule(_ basalSchedule: BasalSchedule, scheduleOffset: TimeInterval) throws {
+        try checkEarlyControlAdmission(requireArmed: true)
         if podState.setupProgress == .settingInitialBasalSchedule {
             // We started basal schedule programming, but didn't get confirmation somehow, so check status
             let status = try getStatus()
@@ -596,10 +597,10 @@ class PodCommsSession: MessageTransportDelegate {
         }
     }
 
-    private func checkEarlyControlAdmission() throws {
+    private func checkEarlyControlAdmission(requireArmed: Bool = false) throws {
         if let id = podState.earlyControlEnableID {
             try O5EarlyControlEnable.check(id: id, target: podState.earlyControlTarget,
-                firmware: podState.firmwareVersion, bleFirmware: podState.iFirmwareVersion)
+                firmware: podState.firmwareVersion, bleFirmware: podState.iFirmwareVersion, requireArmed: requireArmed)
         }
     }
 
@@ -624,7 +625,8 @@ class PodCommsSession: MessageTransportDelegate {
 
     func insertCannula(basalSchedule: BasalSchedule? = nil, scheduleOffset: TimeInterval = 0, optionalAlerts: [PodAlert] = [], silent: Bool) throws -> TimeInterval {
 
-        try checkEarlyControlAdmission()
+        let recoveringInsertion = [SetupProgress.startingInsertCannula, .cannulaInserting, .completed].contains(podState.setupProgress)
+        try checkEarlyControlAdmission(requireArmed: !recoveringInsertion)
         if podState.earlyControlEnableID != nil && podState.setupProgress == .completed { return 0 }
 
         let cannulaInsertionUnits = Pod.cannulaInsertionUnits + Pod.cannulaInsertionUnitsExtra

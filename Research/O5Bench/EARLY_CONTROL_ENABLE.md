@@ -23,7 +23,9 @@ PodCommsSession, before setup is marked completed:
 
 No common setup inputs are replayed by this hook. A confirmed result can be
 rechecked after an interrupted app completion, with reads only. Changed state
-stops the attempt; it never enables again.
+stops the attempt; it never enables again. A verified record also rejects any
+attempt to repeat priming, initial basal programming or fresh insertion after a
+rollback of the host's saved setup progress.
 
 The per-Pod journal is armed during pairing, protected in Application Support,
 excluded from backups, locked and atomically fsynced before each exchange.
